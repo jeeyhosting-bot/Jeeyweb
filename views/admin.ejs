@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel — Secure Mode</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { 600: '#7c3aed', 700: '#6d28d9' },
+            secondary: { 600: '#9333ea', 700: '#7e22ce' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
+    .modal-overlay.active { opacity: 1; visibility: visible; }
+    .modal-content { background: linear-gradient(135deg, #1f2937 0%, #111827 100%); border-radius: 1rem; padding: 2rem; width: 90%; max-width: 400px; transform: translateY(20px); transition: transform 0.3s ease; border: 1px solid #374151; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+    .modal-overlay.active .modal-content { transform: translateY(0); }
+    
+    /* Custom Scrollbar for history */
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #374151; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+  <% if (!isLoggedIn) { %>
+  <div id="loginScreen" class="flex-grow flex items-center justify-center p-6 bg-gradient-to-br from-blue-500 to-indigo-600">
+    <div class="bg-white shadow-xl rounded-2xl w-full max-w-lg p-10">
+      <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">Admin Login</h1>
+      
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="mb-6">
+          <label for="adminPassword" class="block text-gray-700 font-medium mb-2">Password</label>
+          <input id="adminPassword" type="password" placeholder="Masukkan password admin" required
+            class="border rounded-xl p-4 w-full text-lg focus:ring-2 focus:ring-blue-400 outline-none" />
+        </div>
+
+        <button type="submit" id="loginBtn"
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 rounded-xl text-lg transition flex justify-center items-center shadow-lg transform hover:scale-[1.02]">
+          <i class="fas fa-sign-in-alt mr-2"></i> <span>Masuk Dashboard</span>
+        </button>
+      </form>
+      <p id="loginError" class="text-red-500 text-center mt-4 hidden font-medium"></p>
+    </div>
+  </div>
+
+  <script>
+    async function handleLogin(e) {
+      e.preventDefault();
+      const password = document.getElementById('adminPassword').value;
+      const btn = document.getElementById('loginBtn');
+      const err = document.getElementById('loginError');
+      
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memeriksa...';
+      err.classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+          window.location.reload(); // Reload agar server merender dashboard
+        } else {
+          err.innerText = data.message || "Password salah!";
+          err.classList.remove('hidden');
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> <span>Masuk Dashboard</span>';
+        }
+      } catch (error) {
+        err.innerText = "Gagal terhubung ke server.";
+        err.classList.remove('hidden');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> <span>Masuk Dashboard</span>';
+      }
+    }
+  </script>
+
+  <% } else { %>
+  
+  <div id="adminDashboard" class="flex-grow p-4 md:p-8">
+    <div class="bg-white shadow-lg rounded-xl p-6 w-full max-w-6xl mx-auto space-y-6">
+
+      <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800 mb-4 sm:mb-0">
+          <i class="fas fa-user-shield text-primary-600 mr-2"></i>Admin Dashboard
+        </h1>
+        <div class="flex items-center space-x-3">
+          <a href="/admin/logout" class="bg-gray-200 hover:bg-red-100 hover:text-red-600 px-4 py-2 rounded-lg text-sm text-gray-700 no-underline transition flex items-center">
+            <i class="fas fa-sign-out-alt mr-2"></i> Logout
+          </a>
+        </div>
+      </div>
+
+      <div class="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl p-6 mb-6 shadow-lg relative overflow-hidden">
+        <div class="absolute right-0 top-0 h-full w-1/3 bg-white opacity-10 transform skew-x-12"></div>
+        <h2 class="text-lg opacity-90">Current Balance (Atlantic)</h2>
+        <div class="flex items-center mt-2">
+            <p id="balance" class="text-4xl font-bold">Rp 0</p>
+            <button onclick="getProfile()" class="ml-4 bg-white/20 hover:bg-white/30 p-2 rounded-full transition" title="Refresh Saldo">
+                <i class="fas fa-sync-alt text-sm"></i>
+            </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <div class="bg-gray-50 rounded-lg p-6 shadow border border-gray-200">
+          <h3 class="text-lg font-semibold mb-4 text-gray-700"><i class="fas fa-money-bill-wave mr-2 text-green-500"></i>Withdraw Saldo</h3>
+          <button onclick="toggleWithdrawForm()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg w-full transition shadow">
+            Tarik Saldo
+          </button>
+          
+          <div id="withdrawForm" class="hidden mt-4 bg-white p-4 rounded-lg border border-gray-200 shadow-inner">
+            <label class="text-xs text-gray-500 mb-1 block">Jumlah Withdraw</label>
+            <input id="amount" type="number" min="3000" placeholder="Min Rp 3.000" class="border rounded-lg p-3 w-full mb-3 focus:ring-2 focus:ring-red-400 outline-none text-sm" />
+            <button onclick="withdraw()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg w-full transition text-sm">
+              <i class="fas fa-paper-plane mr-2"></i> Kirim Request
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-gray-50 rounded-lg p-6 shadow border border-gray-200">
+          <h3 class="text-lg font-semibold mb-4 text-gray-700"><i class="fas fa-history mr-2 text-blue-500"></i>Riwayat Withdraw</h3>
+          <ul id="historyList" class="space-y-2 text-sm max-h-48 overflow-y-auto custom-scroll pr-2">
+            <li class="text-gray-500 text-center py-4 italic">Belum ada riwayat sesi ini</li>
+          </ul>
+        </div>
+
+        <div class="col-span-1 lg:col-span-3">
+            
+            <div id="insufficient-balance-modal" class="modal-overlay" aria-hidden="true" role="dialog" aria-modal="true">
+              <div class="modal-content text-center">
+                <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-900/20 mb-4">
+                  <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-2">Saldo Tidak Cukup!</h3>
+                <p class="text-gray-300 mb-6">Saldo akun Atlantic Anda tidak mencukupi untuk transaksi ini.</p>
+                <button onclick="hideModal()" class="py-2 px-4 rounded-lg bg-gray-600 hover:bg-gray-700 text-white w-full transition">Tutup</button>
+              </div>
+            </div>
+
+            <div class="w-full max-w-lg p-8 mx-auto bg-gray-800 rounded-xl shadow-2xl space-y-6 border border-gray-700 text-white relative">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-600 to-secondary-600 rounded-t-xl"></div>
+                
+                <div class="flex items-center justify-between border-b border-gray-700 pb-4">
+                    <span class="text-blue-400 font-semibold tracking-wide text-sm uppercase">Manual Order</span>
+                    <div class="flex items-center space-x-2 bg-gray-900 px-3 py-1 rounded-full">
+                        <i class="fas fa-wallet text-yellow-400 text-xs"></i>
+                        <span class="text-xs font-mono text-gray-300" id="balanceInline">Rp 0</span>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <h1 class="text-2xl font-bold bg-gradient-to-r from-primary-400 to-secondary-400 bg-clip-text text-transparent">Buat Pesanan</h1>
+                    <p class="text-gray-400 text-xs mt-1">Order langsung ke Atlantic (bypass margin)</p>
+                </div>
+
+                <form id="transaction-form-admin-ui" class="space-y-4" autocomplete="off">
+                    <div class="group">
+                        <label class="block text-xs font-medium mb-1 text-gray-400 group-focus-within:text-primary-400 transition">Kategori</label>
+                        <div class="relative">
+                            <select id="adm_category_ui" required class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-600 outline-none appearance-none transition">
+                                <option value="">Memuat data...</option>
+                            </select>
+                            <i class="fas fa-chevron-down absolute right-4 top-3.5 text-gray-400 text-xs pointer-events-none"></i>
+                        </div>
+                    </div>
+
+                    <div class="group">
+                        <label class="block text-xs font-medium mb-1 text-gray-400 group-focus-within:text-primary-400 transition">Provider</label>
+                        <div class="relative">
+                            <select id="adm_provider_ui" required class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-600 outline-none appearance-none transition">
+                                <option value="">Pilih Kategori Terlebih Dahulu</option>
+                            </select>
+                            <i class="fas fa-chevron-down absolute right-4 top-3.5 text-gray-400 text-xs pointer-events-none"></i>
+                        </div>
+                    </div>
+
+                    <div class="group">
+                        <label class="block text-xs font-medium mb-1 text-gray-400 group-focus-within:text-primary-400 transition">Tipe</label>
+                        <div class="relative">
+                            <select id="adm_type_ui" required class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-600 outline-none appearance-none transition">
+                                <option value="">Pilih Provider Terlebih Dahulu</option>
+                            </select>
+                            <i class="fas fa-chevron-down absolute right-4 top-3.5 text-gray-400 text-xs pointer-events-none"></i>
+                        </div>
+                    </div>
+
+                    <div class="group">
+                        <label class="block text-xs font-medium mb-1 text-gray-400 group-focus-within:text-primary-400 transition">Produk</label>
+                        <div class="relative">
+                            <select id="adm_product_ui" required class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-600 outline-none appearance-none transition">
+                                <option value="">Pilih Tipe Terlebih Dahulu</option>
+                            </select>
+                            <i class="fas fa-box absolute right-4 top-3.5 text-gray-400 text-xs pointer-events-none"></i>
+                        </div>
+                    </div>
+
+                    <div id="adm_target_section" class="hidden group animate-fade-in-down">
+                        <label class="block text-xs font-medium mb-1 text-gray-400 group-focus-within:text-primary-400 transition">Target (No. HP / ID / Zone)</label>
+                        <div class="relative">
+                            <input type="text" id="adm_target_ui" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-600 outline-none transition placeholder-gray-500" placeholder="Contoh: 08123456789">
+                            <i class="fas fa-crosshairs absolute right-4 top-3.5 text-gray-400 text-xs"></i>
+                        </div>
+                    </div>
+
+                    <div id="adm_account_check_section" class="hidden space-y-2 p-3 bg-gray-700/50 border border-gray-600 rounded-lg animate-fade-in-down">
+                        <div class="flex space-x-2">
+                            <input type="text" id="adm_emoney_account_ui" disabled class="w-full px-3 py-2 bg-gray-600 rounded border border-gray-500 text-gray-300 text-sm" placeholder="Nomor akun...">
+                            <button type="button" id="adm_check_emoney_btn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-xs font-bold transition whitespace-nowrap">
+                                <i class="fas fa-search mr-1"></i> Cek Nama
+                            </button>
+                        </div>
+                        <div id="adm_emoney_status" class="hidden text-xs font-mono p-1"></div>
+                    </div>
+
+                    <button id="adm_order_btn" type="submit" class="w-full py-3 bg-gradient-to-r from-primary-600 to-secondary-600 hover:from-primary-700 hover:to-secondary-700 rounded-lg font-bold text-white shadow-lg transform active:scale-95 transition flex justify-center items-center">
+                        <i class="fas fa-paper-plane mr-2"></i> Proses Order
+                    </button>
+                </form>
+
+                <div id="adminTxnHistoryUI" class="mt-4 text-xs max-h-40 overflow-y-auto space-y-2 border-t border-gray-700 pt-3 text-gray-400 custom-scroll">
+                    <p class="text-center italic opacity-50">Belum ada transaksi baru sesi ini.</p>
+                </div>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- DASHBOARD LOGIC START ---
+    
+    // Inisialisasi
+    window.addEventListener('DOMContentLoaded', () => {
+        getProfile();
+        loadProductsForAdmin();
+    });
+
+    // 1. Get Profile (Saldo)
+    async function getProfile() {
+        const balEl = document.getElementById("balance");
+        const balIn = document.getElementById("balanceInline");
+        
+        // Animasi loading
+        balIn.innerText = "...";
+        
+        try {
+            const resp = await fetch("/admin/api/get-profile", { method: "POST" });
+            
+            // Jika 401 Unauthorized (session mati), reload ke login
+            if (resp.status === 401) {
+                window.location.reload();
+                return;
+            }
+
+            const j = await resp.json();
+            if (j.ok && j.data && j.data.data) {
+                const bal = j.data.data.balance || 0;
+                const formatted = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(bal);
+                
+                balEl.innerText = formatted;
+                balIn.innerText = formatted;
+                window.__ADMIN_BALANCE = Number(bal);
+            }
+        } catch (e) {
+            console.error("Gagal load profil:", e);
+        }
+    }
+
+    // 2. Withdraw Logic
+    function toggleWithdrawForm() {
+        document.getElementById("withdrawForm").classList.toggle("hidden");
+    }
+
+    async function withdraw() {
+        const nominal = document.getElementById("amount").value;
+        if (!nominal || nominal < 3000) return alert("Minimal withdraw Rp 3.000");
+        
+        if (!confirm(`Yakin ingin withdraw Rp ${nominal}?`)) return;
+
+        try {
+            const resp = await fetch("/admin/api/withdraw", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ nominal })
+            });
+            const j = await resp.json();
+            
+            if (j.ok) {
+                alert("Permintaan withdraw berhasil dikirim!");
+                addHistoryItem(`Withdraw Rp ${nominal} - Pending`);
+                getProfile(); // Refresh saldo
+                document.getElementById("amount").value = "";
+                toggleWithdrawForm();
+            } else {
+                alert("Gagal: " + (j.message || "Unknown Error"));
+            }
+        } catch (e) {
+            alert("Terjadi kesalahan koneksi.");
+        }
+    }
+
+    function addHistoryItem(text) {
+        const list = document.getElementById("historyList");
+        // Hapus pesan "belum ada" jika ada
+        if (list.children.length === 1 && list.children[0].classList.contains('italic')) {
+            list.innerHTML = "";
+        }
+        const li = document.createElement("li");
+        li.className = "text-gray-600 border-b border-gray-100 pb-1";
+        li.innerHTML = `<i class="fas fa-clock text-xs mr-1"></i> ${text}`;
+        list.prepend(li);
+    }
+
+    // 3. Logic Order Manual
+    let adminProducts = [];
+
+    async function loadProductsForAdmin() {
+        try {
+            // Mengambil data dari endpoint yang sudah ada di server.js
+            const res = await fetch('/admin/api/price-list');
+            const data = await res.json();
+            
+            if (data && data.ok) {
+                adminProducts = data.data || [];
+                populateCategories();
+            } else {
+                console.error("Gagal mengambil price list");
+            }
+        } catch (e) {
+            console.error("Error load products", e);
+        }
+    }
+
+    // Helper Escape HTML
+    function escapeHtml(s) { 
+        if (typeof s !== 'string') return s; 
+        return s.replace(/[&<>\"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); 
+    }
+
+    // A. Populate Kategori
+    function populateCategories() {
+        const cats = [...new Set(adminProducts.map(d => d.category))].filter(Boolean).sort();
+        const el = document.getElementById('adm_category_ui');
+        
+        el.innerHTML = '<option value="" disabled selected>Pilih Kategori</option>';
+        cats.forEach(c => el.innerHTML += `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`);
+        
+        el.onchange = () => {
+            const val = el.value;
+            // Filter provider berdasarkan kategori
+            const provs = [...new Set(adminProducts.filter(p => p.category === val).map(p => p.provider))].filter(Boolean).sort();
+            
+            const provEl = document.getElementById('adm_provider_ui');
+            provEl.innerHTML = '<option value="" disabled selected>Pilih Provider</option>';
+            provs.forEach(p => provEl.innerHTML += `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`);
+            
+            resetUI('provider');
+
+            // B. Populate Provider (Nested Event)
+            provEl.onchange = () => {
+                const pVal = provEl.value;
+                const types = [...new Set(adminProducts.filter(p => p.category === val && p.provider === pVal).map(p => p.type))].filter(Boolean).sort();
+                
+                const typeEl = document.getElementById('adm_type_ui');
+                typeEl.innerHTML = '<option value="" disabled selected>Pilih Tipe</option><option value="All">Semua Tipe</option>';
+                types.forEach(t => typeEl.innerHTML += `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`);
+                
+                resetUI('type');
+
+                // C. Populate Tipe
+                typeEl.onchange = () => {
+                    const tVal = typeEl.value;
+                    let filtered = adminProducts.filter(p => p.category === val && p.provider === pVal);
+                    if (tVal !== 'All') {
+                        filtered = filtered.filter(p => p.type === tVal);
+                    }
+                    
+                    const prodEl = document.getElementById('adm_product_ui');
+                    prodEl.innerHTML = '<option value="" disabled selected>Pilih Produk</option>';
+                    
+                    // Sort harga termurah
+                    filtered.sort((a,b) => a.price - b.price);
+
+                    filtered.forEach(p => {
+                        const priceFmt = new Intl.NumberFormat('id-ID').format(p.price);
+                        prodEl.innerHTML += `<option value="${p.code}" data-price="${p.price}" data-name="${escapeHtml(p.name)}">${escapeHtml(p.name)} - Rp ${priceFmt}</option>`;
+                    });
+                    
+                    resetUI('product');
+
+                    // D. Select Produk
+                    prodEl.onchange = () => {
+                        const targetSec = document.getElementById('adm_target_section');
+                        targetSec.classList.remove('hidden');
+                        
+                        // Placeholder dinamis
+                        const targetInput = document.getElementById('adm_target_ui');
+                        if(val.toLowerCase().includes('game')) {
+                            targetInput.placeholder = "Contoh: 12345678|1234 (ID|Zone)";
+                        } else if(val.toLowerCase().includes('pulsa') || val.toLowerCase().includes('data')) {
+                            targetInput.placeholder = "Contoh: 08123456789";
+                        } else {
+                            targetInput.placeholder = "Masukkan ID / Nomor Tujuan";
+                        }
+
+                        // Cek E-Money
+                        checkEmoneyUI(val, pVal);
+                    }
+                }
+            }
+        }
+    }
+
+    function resetUI(level) {
+        if (level === 'provider') {
+            document.getElementById('adm_type_ui').innerHTML = '<option value="">Pilih Provider Dulu</option>';
+            document.getElementById('adm_product_ui').innerHTML = '<option value="">Pilih Tipe Dulu</option>';
+        } else if (level === 'type') {
+            document.getElementById('adm_product_ui').innerHTML = '<option value="">Pilih Tipe Dulu</option>';
+        }
+        document.getElementById('adm_target_section').classList.add('hidden');
+        document.getElementById('adm_account_check_section').classList.add('hidden');
+        document.getElementById('adm_target_ui').value = '';
+        document.getElementById('adm_emoney_account_ui').value = '';
+        document.getElementById('adm_emoney_status').classList.add('hidden');
+    }
+
+    function checkEmoneyUI(cat, prov) {
+        const c = cat.toLowerCase();
+        const p = prov.toLowerCase();
+        // Logika sederhana mendeteksi E-Money
+        const isEmoney = (c.includes('e-money') || c.includes('wallet')) && ['dana', 'ovo', 'gopay', 'shopeepay', 'linkaja', 'sakuku'].some(x => p.includes(x));
+        
+        const sec = document.getElementById('adm_account_check_section');
+        if (isEmoney) {
+            sec.classList.remove('hidden');
+        } else {
+            sec.classList.add('hidden');
+        }
+    }
+
+    // Sync Input Target ke Cek Akun Input
+    document.getElementById('adm_target_ui').addEventListener('input', (e) => {
+        document.getElementById('adm_emoney_account_ui').value = e.target.value;
+    });
+
+    // 4. Logic Cek Nama Akun (E-Money)
+    document.getElementById('adm_check_emoney_btn').addEventListener('click', async () => {
+        const acc = document.getElementById('adm_emoney_account_ui').value;
+        const method = document.getElementById('adm_provider_ui').value.toUpperCase();
+        const statusDiv = document.getElementById('adm_emoney_status');
+        const btn = document.getElementById('adm_check_emoney_btn');
+
+        if (!acc) return alert('Masukkan nomor akun terlebih dahulu');
+        
+        btn.disabled = true;
+        btn.innerHTML = '...';
+        statusDiv.classList.remove('hidden', 'text-green-400', 'text-red-400');
+        statusDiv.innerText = 'Memeriksa...';
+        
+        try {
+            const res = await fetch('/admin/api/check-account', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ account_number: acc, method: method })
+            });
+            const d = await res.json();
+            
+            if (d.ok && d.data && d.data.status === 'valid') {
+                statusDiv.innerText = `✅ Valid: ${d.data.owner_name}`;
+                statusDiv.classList.add('text-green-400');
+            } else {
+                statusDiv.innerText = `❌ ${d.data?.message || 'Tidak Valid'}`;
+                statusDiv.classList.add('text-red-400');
+            }
+        } catch (e) {
+            statusDiv.innerText = 'Error Connection';
+            statusDiv.classList.add('text-red-400');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-search mr-1"></i> Cek Nama';
+        }
+    });
+
+    // 5. Submit Order Logic
+    document.getElementById('transaction-form-admin-ui').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const prodEl = document.getElementById('adm_product_ui');
+        const code = prodEl.value;
+        const name = prodEl.options[prodEl.selectedIndex]?.getAttribute('data-name') || code;
+        const price = Number(prodEl.options[prodEl.selectedIndex]?.getAttribute('data-price') || 0);
+        const target = document.getElementById('adm_target_ui').value.trim();
+        const btn = document.getElementById('adm_order_btn');
+
+        // Validasi Dasar
+        if (!code || !target) return alert("Data pesanan tidak lengkap.");
+
+        // Cek Saldo Admin Lokal (Pre-Flight Check)
+        if (window.__ADMIN_BALANCE < price) {
+            showModal(); // Tampilkan modal saldo kurang
+            return;
+        }
+
+        if (!confirm(`Order ${name}\nTujuan: ${target}\nHarga: Rp ${price}\n\nLanjutkan?`)) return;
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memproses...';
+
+        try {
+            const res = await fetch('/admin/api/transaction-create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    reff_id: 'ADM-' + Date.now(),
+                    code: code,
+                    target: target
+                })
+            });
+            const d = await res.json();
+            
+            // Log ke UI
+            const historyBox = document.getElementById('adminTxnHistoryUI');
+            const item = document.createElement('div');
+            item.className = 'p-2 border rounded bg-black/20 text-xs mb-2 border-l-4';
+            
+            // Cek sukses (Atlantic kadang return data.status='success' atau data.data.status='pending')
+            const isSuccess = d.ok && (d.data?.status === 'success' || d.data?.status === 'pending');
+
+            if (isSuccess) {
+                item.classList.add('border-green-500');
+                item.innerHTML = `
+                    <div class="flex justify-between font-bold text-green-400">
+                        <span>SUCCESS / PENDING</span>
+                        <span>${new Date().toLocaleTimeString()}</span>
+                    </div>
+                    <div class="text-white">${escapeHtml(name)}</div>
+                    <div class="font-mono text-gray-300">${escapeHtml(target)}</div>
+                    <div class="text-[10px] mt-1 text-gray-400">SN: ${d.data?.sn || 'Menunggu...'}</div>
+                `;
+                getProfile(); // Update saldo otomatis
+                // Reset form target
+                document.getElementById('adm_target_ui').value = ''; 
+                document.getElementById('adm_emoney_account_ui').value = '';
+                document.getElementById('adm_emoney_status').innerHTML = '';
+            } else {
+                item.classList.add('border-red-500');
+                item.innerHTML = `
+                    <div class="flex justify-between font-bold text-red-400">
+                        <span>FAILED</span>
+                        <span>${new Date().toLocaleTimeString()}</span>
+                    </div>
+                    <div class="text-white">${escapeHtml(name)}</div>
+                    <div class="font-mono text-gray-300">${escapeHtml(target)}</div>
+                    <div class="text-[10px] mt-1 text-red-300">${d.message || d.data?.message || 'Unknown Error'}</div>
+                `;
+            }
+            
+            // Hapus teks "belum ada"
+            if (historyBox.children.length > 0 && historyBox.children[0].tagName === 'P') {
+                historyBox.innerHTML = '';
+            }
+            historyBox.prepend(item);
+
+        } catch (e) {
+            alert("Terjadi kesalahan jaringan saat order.");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> Proses Order';
+        }
+    });
+
+    // Modal Utils
+    const modal = document.getElementById('insufficient-balance-modal');
+    function showModal() { modal.classList.add('active'); }
+    window.hideModal = function() { modal.classList.remove('active'); }
+    
+    // Close modal on Esc
+    document.addEventListener('keydown', (e) => {
+        if(e.key === "Escape") hideModal();
+    });
+
+  </script>
+  <% } %>
+</body>
+</html>
