@@ -1,0 +1,30 @@
+{
+  "name": "Jeeystore",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Full-stack topup project with Express.js, EJS, and Atlantic API integration",
+  "author": "Jeeyhosting",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "latest",
+    "nodemailer": "latest",
+    "body-parser": "latest",
+    "dotenv": "latest",
+    "ejs": "latest",
+    "express": "latest",
+    "express-session": "latest",
+    "express-rate-limit": "latest",
+    "session-file-store": "latest",
+    "bcryptjs": "latest",
+    "uuid": "latest",
+    "helmet": "latest",
+	"csurf": "latest"
+  },
+  "devDependencies": {
+    "nodemon": "latest"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  }
+}
