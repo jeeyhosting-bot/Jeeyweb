@@ -1,0 +1,2421 @@
+<%
+    // pilih logo dari produk (fallback)
+    function _pickLogoFromProducts(products) {
+        if (!products || !products.length) return null;
+        for (let i = 0; i < products.length; i++) {
+            const p = products[i] || {};
+            if (p.img_url) return p.img_url;
+            if (p.img) return p.img;
+            if (p.logo) return p.logo;
+            if (p.image) return p.image;
+        }
+        return null;
+    }
+
+    // providerLogo: diharapkan dikirim dari server (route) — ini prioritas utama
+    const serverLogo = (typeof providerLogo !== 'undefined' && providerLogo) ? String(providerLogo) : null;
+    const apiLogo = _pickLogoFromProducts(products || []);
+    const finalLogo = serverLogo || apiLogo || null;
+
+    // --- LOGIC KHUSUS OG:IMAGE (AUTO CONVERT TO JPG) ---
+    let ogImageUrl = null;
+    if (finalLogo) {
+        // 1. Kita butuh URL absolute (https://...) untuk og:image
+        // Asumsi 'finalLogo' berawalan '/' (misal: /images/logo.png)
+        const rawUrl = `https://${config.domain}${finalLogo}`;
+
+        // 2. Gunakan 'wsrv.nl' untuk convert realtime ke JPG.
+        // Parameter: url = url asli, output = jpg
+        ogImageUrl = `https://wsrv.nl/?url=${encodeURIComponent(rawUrl)}&output=jpg`;
+    }
+    // ----------------------------------------------------
+
+    const totalProducts = (products && products.length) ? products.length : 0;
+    const safeProviderName = providerName || providerSlug || 'Provider';
+
+    // bantu escape single-quote untuk memasukkan URL ke attribute onerror
+    function _escapeForAttr(s) {
+        if (!s) return '';
+        return String(s).replace(/'/g, "\\'");
+    }
+%>
+	
+<!DOCTYPE html>
+<html lang="id" class="antialiased">
+<head>
+	<meta name="csrf-token" content="<%= csrfToken %>">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title><%= providerName %> - <%= categoryName %> | <%= config.name %></title>
+    
+    <meta name="description" content="<%= config.name %> adalah platform top-up terpercaya untuk game online, pulsa & data, voucher digital, serta akun premium. Transaksi instan, aman, dan dukungan pelanggan 24/7.">
+  <meta name="keywords" content="top up game, top up pulsa, beli voucher digital, top up Mobile Legends, top up PUBG, <%= config.name %>, inovixa, top up cepat aman">
+  <meta name="author" content="PT Inovixa Technologies Solution">
+
+  <meta property="og:title" content="<%= providerName %> - <%= categoryName %> | <%= config.name %>">
+  <meta property="og:description" content="Top-up instan untuk game online, pulsa, data, dan voucher digital. Nikmati transaksi cepat, aman, dengan support 24/7.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://<%= config.domain %>">
+  
+  <% if (ogImageUrl) { %>
+      <meta property="og:image" content="<%= ogImageUrl %>">
+  <% } else { %>
+      <meta property="og:image" content="https://<%= config.domain %>/default-og.jpg"> 
+  <% } %>
+
+  <meta property="og:site_name" content="<%= config.name %>">
+  	
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="<%= providerName %> - <%= categoryName %> | <%= config.name %>">
+  <meta name="twitter:description" content="Top-up instan untuk game online, pulsa, data, dan voucher digital dengan support 24/7.">
+  <meta name="twitter:image" content="https://<%= config.domain %>/img/favlogo.jpg">
+  <meta name="twitter:site" content="@inovixa">
+
+  <!-- Canonical -->
+  <link rel="canonical" href="https://<%= config.domain %>" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="<%= finalLogo %>" />
+  <link rel="apple-touch-icon" href="/img/favicon.png" />
+  
+    <!-- Tailwind (class-based dark mode) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class' };</script>
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --accent:#2563eb; --glass-light:rgba(255,255,255,0.75); }
+        html,body { font-family: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+        .glass { background: linear-gradient(180deg, var(--glass-light), rgba(255,255,255,0.60)); backdrop-filter: blur(6px); }
+        .dark .glass { background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02)); backdrop-filter: blur(8px); }
+        .card-img { aspect-ratio: 16/10; object-fit: cover; width: 100%; }
+        .focus-outline:focus { outline: 3px solid rgba(37,99,235,0.18); outline-offset: 3px; }
+        .icon-rotate { transition: transform 300ms ease; } .icon-rotate.rotate { transform: rotate(40deg) scale(1.05); }
+        .toggle-pill { transition: transform 220ms cubic-bezier(.2,.9,.2,1); }
+        .dark .card-img { filter: brightness(.9) contrast(.95); }
+        @media (max-width:768px) { .desktop-only{display:none} } @media (min-width:769px) { .mobile-only{display:none} }
+
+        /* Product cards */
+        .product-card { transition: all 220ms cubic-bezier(.2,.9,.2,1); position:relative; }
+        .product-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px -12px rgba(0,0,0,0.12); }
+        .product-card:focus { outline: 3px solid rgba(37,99,235,0.12); outline-offset: 4px; }
+        .product-card.selected { border: 2px solid var(--accent); background-color: rgba(37, 99, 235, 0.04); transform: translateY(-6px) scale(1.02); box-shadow: 0 18px 40px -20px rgba(37,99,235,0.18); }
+
+        /* Payment cards */
+        .payment-card { transition: all 180ms ease; border: 1px solid rgba(156,163,175,0.3); padding: .6rem; border-radius: .75rem; background: white; cursor: pointer; display:flex; align-items:center; gap:.6rem; justify-content:center; text-align:center; flex-direction:column; }
+        .payment-card:hover { transform: translateY(-3px); box-shadow: 0 10px 30px -16px rgba(0,0,0,0.12); }
+        .payment-card:focus { outline: 3px solid rgba(37,99,235,0.12); outline-offset: 3px; }
+        .payment-card.selected { border-color: var(--accent); background-color: rgba(37,99,235,0.04); box-shadow: 0 12px 30px -14px rgba(37,99,235,0.12); transform: translateY(-4px) scale(1.01); }
+        .payment-card.disabled { opacity:0.45; cursor:not-allowed; }
+        .payment-card .label { font-weight:600; font-size:0.92rem; }
+        .payment-card .sub { font-size:0.75rem; color:#6b7280; }
+
+        .filter-btn { transition: transform 180ms cubic-bezier(.2,.9,.2,1), box-shadow 180ms; white-space:nowrap; }
+        .filter-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 20px -8px rgba(0,0,0,0.08); }
+        .filter-btn.active { background-color: rgba(37,99,235,0.06); border-color: var(--accent); color: var(--accent); transform: translateY(-4px) scale(1.02); box-shadow: 0 12px 28px -12px rgba(37,99,235,0.12); }
+
+        .step-indicator { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .step-indicator.active { background-color: #2563eb; color: white; }
+        .step-indicator.completed { background-color: #10b981; color: white; }
+
+        @keyframes popSelect {
+            0% { transform: scale(1); }
+            40% { transform: scale(1.03); }
+            100% { transform: scale(1.02); }
+        }
+
+        .product-card.selected .pop-anim { animation: popSelect 220ms ease; }
+
+        .name-result { transition: all 220ms ease; }
+        .temp-highlight { box-shadow: 0 8px 30px -8px rgba(37,99,235,0.28) !important; transform: translateY(-2px) !important; border-radius: 8px !important; }
+
+        .dark .payment-card { background: #0f1724; border-color: rgba(148,163,184,0.12); color: #e6eefb; }
+        .dark .payment-card .sub { color: #94a3b8; }
+
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+
+        /* payment methods collapse helper */
+        #payment-methods-wrapper.collapsed {
+            max-height: 0;
+            overflow: hidden;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #payment-methods-wrapper {
+            max-height: 2000px;
+            opacity: 1;
+            transition: max-height 260ms ease, opacity 220ms ease;
+        }
+
+        /* rotate icon when closed */
+        #payment-toggle-icon.rotate { transform: rotate(180deg); transition: transform 220ms ease; }
+
+        /* Bottom fixed order bar (mobile friendly) */
+        #bottom-order-bar {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 18px;
+            z-index: 60;
+            width: calc(100% - 32px);
+            max-width: 720px;
+            transition: transform 220ms ease, opacity 180ms ease;
+            will-change: transform, opacity;
+            pointer-events: auto;
+        }
+
+        #bottom-order-bar.hidden { opacity: 0; transform: translateX(-50%) translateY(12px); pointer-events: none; }
+
+        /* inside card */
+        #bottom-order-bar .bar-inner {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: white;
+            border-radius: 14px;
+            padding: 12px;
+            box-shadow: 0 12px 30px -12px rgba(0,0,0,0.14);
+            border: 1px solid rgba(15,23,42,0.04);
+        }
+
+        .dark #bottom-order-bar .bar-inner {
+            background: #071025;
+            border-color: rgba(148,163,184,0.06);
+        }
+
+        /* product info */
+        #bottom-order-bar .bar-left { display:flex; align-items:center; gap:12px; flex:1; min-width:0; }
+        #bottom-order-bar .product-thumb { width:56px; height:56px; border-radius:10px; overflow:hidden; flex-shrink:0; background: #f3f4f6; display:flex; align-items:center; justify-content:center; font-weight:600; color: #1e3a8a; }
+        #bottom-order-bar .product-info { min-width:0; }
+        #bottom-order-bar .product-name { font-weight:600; font-size:0.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        #bottom-order-bar .product-price { font-weight:700; color:var(--accent); font-size:0.95rem; }
+
+        /* button */
+        #bottom-order-bar .bar-action { margin-left: 8px; }
+        #bottom-order-bar .btn-order {
+            background: linear-gradient(90deg,#2563eb,#7c3aed);
+            color: white;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-weight:700;
+            min-width:120px;
+            border: none;
+        }
+
+        #bottom-order-bar .btn-order:disabled { opacity:0.6; cursor:not-allowed; }
+
+        /* Desktop: make fixed bar narrower and centered */
+        @media (min-width: 1024px) {
+            #bottom-order-bar { bottom: 26px; width: 720px; }
+        }
+
+        /* Scroll-top button: positioned and will be dynamically moved to sit above bottom bar */
+        #scroll-top {
+            position: fixed;
+            right: 18px;
+            bottom: 24px; /* default, may be overridden by JS */
+            z-index: 70; /* higher than bottom-order-bar */
+            display: none; /* toggled by JS */
+        }
+
+        /* OVO input field */
+        #ovo-phone-wrapper {
+            transition: all 220ms ease;
+            overflow: hidden;
+        }
+        #ovo-phone-wrapper.hidden {
+            max-height: 0;
+            opacity: 0;
+            margin-top: 0;
+            margin-bottom: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        #ovo-phone-wrapper:not(.hidden) {
+            max-height: 200px;
+            opacity: 1;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 transition-colors duration-300 dark:bg-slate-900 dark:text-slate-100">
+    <!-- Header -->
+    <header class="bg-white dark:bg-slate-800 sticky top-0 z-40 shadow-sm transition-colors duration-300">
+        <div class="container mx-auto px-4 md:px-6 py-3 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-pink-500 flex items-center justify-center shadow-lg">
+    <img src="/img/favlogo.jpg" alt="Logo" class="rounded-lg w-full h-full object-contain" />
+  </div>
+                <div>
+                    <div class="text-lg font-bold text-gray-900 dark:text-slate-100"><%= config.name %> <span class="hidden text-blue-600 font-semibold">.</span></div>
+                    <div class="text-xs text-gray-500 dark:text-slate-300 -mt-1">Top Up — Cepat & Aman</div>
+                </div>
+            </a>
+            <div class="flex items-center gap-3">
+                <button id="mobile-theme-toggle" class="md:hidden p-2 rounded-full focus:outline-none hover:bg-gray-100 dark:hover:bg-slate-700" aria-label="Ubah tema" data-mobile-theme-toggle>
+                    <i id="mobile-theme-icon" class="fa-solid fa-moon text-gray-700 dark:text-slate-200"></i>
+                </button>
+                <nav class="hidden md:flex items-center gap-6">
+                	<a href="/" class="text-sm font-medium text-gray-700 dark:text-slate-300 nav-link focus-outline">Beranda</a>
+                    <a href="/status" class="text-sm font-medium text-gray-700 dark:text-slate-300 nav-link focus-outline">Status Pesanan</a>
+                    <a href="/faq" class="text-sm font-medium text-gray-700 dark:text-slate-300 nav-link focus-outline">Faq</a>
+          <a href="/bantuan" class="text-sm font-medium text-gray-700 dark:text-slate-300 nav-link focus-outline">Bantuan</a>
+          <a href="/syarat-dan-ketentuan" class="text-sm font-medium text-gray-700 dark:text-slate-300 nav-link focus-outline">Syarat & Ketentuan</a>
+        </nav>
+                <button id="theme-toggle" aria-label="Ubah mode: gelap / terang" role="switch" aria-checked="false"
+                    class="hidden md:inline-flex ml-1 p-1 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 shadow-sm flex items-center gap-2">
+                    <span class="sr-only">Toggle theme</span>
+                    <span id="theme-icon" class="flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-tr from-yellow-400 to-orange-400 text-white shadow icon-rotate">
+                        <i class="fa-solid fa-sun"></i>
+                    </span>
+                    <span id="theme-pill" class="hidden ml-1 w-10 h-5 rounded-full bg-slate-200 dark:bg-slate-600 relative toggle-pill">
+                        <span id="theme-dot" class="absolute left-0 top-0.5 w-4 h-4 rounded-full bg-white dark:bg-slate-200 shadow transform translate-x-0 transition-transform"></span>
+                    </span>
+                </button>
+                <% if (locals.user) { %>
+                <div class="relative group hidden md:block">
+                    <button id="profile-button" class="flex items-center gap-2 bg-blue-50 dark:bg-slate-700 py-1.5 px-3 rounded-full hover:bg-blue-100 transition">
+                        <div class="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold" id="user-initial">
+                            <%= user.name.charAt(0).toUpperCase() %>
+                        </div>
+                        <div class="text-left hidden lg:block">
+                            <div class="text-xs font-bold text-gray-800 dark:text-white" id="user-name-display"><%= user.name %></div>
+                            
+                            <div class="text-[10px] text-blue-600 dark:text-blue-400 font-semibold" id="user-balance-header">
+                                Rp 0
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-down text-xs text-gray-500"></i>
+                    </button>
+                    
+                    <div class="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-100 dark:border-slate-700 hidden group-hover:block z-50 overflow-hidden">
+                        <div class="p-3 border-b dark:border-slate-700 lg:hidden text-center bg-gray-50 dark:bg-slate-900">
+                            <div class="font-bold dark:text-white" id="user-balance-mobile">
+                                Rp 0
+                            </div>
+                        </div>
+                        <a href="/topup" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-slate-700">
+                            <i class="fa-solid fa-wallet mr-2 text-blue-500"></i> Isi Saldo
+                        </a>
+                        <a href="/account" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-slate-700">
+                            <i class="fa-solid fa-user-cog mr-2 text-green-500"></i> Akun Saya
+                        </a>
+                        <div class="border-t dark:border-slate-700 my-1"></div>
+                        <a href="/logout" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-slate-700">
+                            <i class="fa-solid fa-right-from-bracket mr-2"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            <% } else { %>
+                <div class="hidden md:flex items-center gap-4">
+                    <a href="/login" class="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-blue-600 transition">Masuk</a>
+                    <a href="/register" class="text-sm font-bold bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 transition shadow-sm shadow-blue-200">Daftar</a>
+                </div>
+            <% } %>
+                <button id="menu-toggle" class="p-2 rounded-md md:hidden focus:outline-none" aria-label="Buka menu">
+                    <i class="fas fa-bars text-xl text-gray-700 dark:text-slate-200"></i>
+                </button>
+            </div>
+        </div>
+        <div id="mobile-menu" class="md:hidden hidden border-t border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800">
+            <div class="px-4 py-4 space-y-2">
+            	<% if (locals.user) { %>
+                <div class="bg-blue-50 dark:bg-slate-700/50 p-3 rounded-lg flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+                            <%= user.name.charAt(0).toUpperCase() %>
+                        </div>
+                        <div>
+                            <div class="font-bold text-gray-800 dark:text-white"><%= user.name %></div>
+                            <div class="text-xs text-blue-600 dark:text-blue-400 font-bold" id="user-balance-mobile-menu">
+                                Rp 0
+                            </div>
+                        </div>
+                    </div>
+                    <a href="/topup" class="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-md shadow">Isi Saldo</a>
+                </div>
+                <a href="/account" class="block py-2 px-2 text-gray-700 dark:text-slate-300 font-semibold hover:bg-gray-50 dark:hover:bg-slate-700 rounded-md"><i class="fa-solid fa-user-cog mr-2 text-green-500"></i> Akun Saya</a>
+                <a href="/logout" class="block py-2 px-2 text-red-500 font-semibold hover:bg-red-50 dark:hover:bg-slate-700 rounded-md"><i class="fa-solid fa-right-from-bracket mr-2"></i> Logout</a>
+                <div class="border-t dark:border-slate-700 my-2"></div>
+            <% } else { %>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <a href="/login" class="text-center py-2 border rounded-lg dark:text-white dark:border-slate-700">Masuk</a>
+                    <a href="/register" class="text-center py-2 bg-blue-600 text-white rounded-lg">Daftar</a>
+                </div>
+            <% } %>
+            	<a href="/" class="block py-2 px-2 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700">Beranda</a>
+                <a href="/status" class="block py-2 px-2 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700">Status Pesanan</a>
+                <a href="/faq" class="block py-2 px-2 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700">Faq</a>
+        <a href="/support" class="block py-2 px-2 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700">Bantuan</a>
+        <a href="/syarat-dan-ketentuan" class="block py-2 px-2 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700">Syarat & Ketentuan</a>
+      </div>
+        </div>
+    </header>
+    
+    <% if (locals.user) { %>
+<script>
+    // Helper untuk memformat saldo
+    const formatRupiah = (number) => {
+        // IDR format dengan 0 digit di belakang koma (Rp 10.000)
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
+    };
+
+    /**
+     * Mengambil data profil terbaru (terutama saldo) dari API
+     * dan memperbarui tampilan header.
+     */
+    async function updateBalanceHeader() {
+        const balanceHeaderEl = document.getElementById('user-balance-header');       // Desktop
+        const balanceMobileEl = document.getElementById('user-balance-mobile');       // Dropdown Tablet
+        const balanceMobileMenuEl = document.getElementById('user-balance-mobile-menu'); // Menu Mobile
+
+        try {
+            const response = await fetch('/api/user/profile-data'); 
+            const data = await response.json();
+
+            if (data.ok) {
+                const formattedBalance = formatRupiah(data.balance);
+                
+                // Update SEMUA tampilan saldo TANPA LOADING STATE
+                if (balanceHeaderEl) balanceHeaderEl.textContent = formattedBalance;
+                if (balanceMobileEl) balanceMobileEl.textContent = formattedBalance;
+                if (balanceMobileMenuEl) balanceMobileMenuEl.textContent = formattedBalance;
+
+            } else {
+                // Tampilkan pesan error jika gagal, tapi jangan ubah angka ke loading state
+                const errorText = 'Error Saldo';
+                console.error("Gagal memuat saldo:", data.message);
+                
+                // (Optional: Bisa menampilkan error, atau biarkan angka terakhir jika ini update berkala)
+                // if (balanceHeaderEl) balanceHeaderEl.textContent = errorText; 
+            }
+        } catch (error) {
+            // Tampilkan pesan error jika terjadi error jaringan
+            console.error("Error jaringan saat memuat saldo:", error);
+        }
+    }
+
+    // 1. Panggil fungsi saat DOM siap (Perbaikan masalah awal login/update)
+    document.addEventListener('DOMContentLoaded', updateBalanceHeader); 
+    
+    // 2. ** PEMBARUAN OTOMATIS 10 DETIK **
+    setInterval(updateBalanceHeader, 10000); // 10000 milidetik = 10 detik
+
+</script>
+<% } %>
+
+    <!-- Main -->
+    <main class="container mx-auto px-4 md:px-6 py-8">
+        <!-- Breadcrumb -->
+        <nav class="mb-6 text-sm text-gray-500 dark:text-slate-400">
+            <ol class="flex items-center space-x-2">
+                <li><a href="/" class="hover:text-blue-600">Beranda</a></li>
+                <li><i class="fas fa-chevron-right text-xs"></i></li>
+                <li><a href="/#providers" class="hover:text-blue-600"><%= categorySlug %></a></li>
+                <li><i class="fas fa-chevron-right text-xs"></i></li>
+                <li class="text-blue-600"><%= providerSlug || 'Provider' %></li>
+            </ol>
+        </nav>
+
+        <!-- Provider Info -->
+        <section class="mb-8">
+            <div class="flex flex-col md:flex-row items-start md:items-center gap-4">
+                <div class="w-16 h-16 rounded-xl overflow-hidden shadow-md">
+<% if (finalLogo) { %>
+    <img
+        src="<%= finalLogo %>"
+        alt="<%= safeProviderName %>"
+        class="w-full h-full object-cover"
+        <%= (serverLogo && apiLogo && serverLogo !== apiLogo) ? ("onerror=\"this.onerror=null;this.src='" + _escapeForAttr(apiLogo) + "'\"") : '' %>
+    >
+<% } else { %>
+    <div class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-slate-700 text-blue-600 font-bold text-xl">
+        <%= (safeProviderName[0] || 'P').toUpperCase() %>
+    </div>
+<% } %>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-slate-100"><%= safeProviderName %></h1>
+                    <p class="text-gray-600 dark:text-slate-300">
+                        <%= (categoryName || categorySlug) ? `${categoryName || categorySlug}` : '' %>
+                    </p>
+                    <% if (totalProducts > 0) { %>
+                        <p class="text-sm text-gray-500 dark:text-slate-400 mt-1">
+                            Tersedia <%= totalProducts %> produk untuk provider ini
+                        </p>
+                    <% } %>
+                </div>
+                <div class="ml-auto hidden md:block">
+                    <div class="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-4 py-2 rounded-lg">
+                        <p class="text-sm font-medium">Waktu proses: <span class="font-bold">Instan</span></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Progress Steps -->
+        <section class="mb-8">
+            <div class="flex items-center justify-between max-w-2xl mx-auto">
+                <div class="flex flex-col items-center">
+                    <div class="step-indicator completed">
+                        <i class="fas fa-check text-xs"></i>
+                    </div>
+                    <span class="text-xs mt-1 text-gray-600 dark:text-slate-400">Pilih Provider</span>
+                </div>
+                <div class="h-0.5 flex-1 bg-blue-600 mx-2"></div>
+                <div class="flex flex-col items-center">
+                    <div class="step-indicator active">
+                        <span>2</span>
+                    </div>
+                    <span class="text-xs mt-1 font-medium text-blue-600">Pilih Produk</span>
+                </div>
+                <div class="h-0.5 flex-1 bg-gray-200 dark:bg-slate-700 mx-2"></div>
+                <div class="flex flex-col items-center">
+                    <div class="step-indicator bg-gray-100 dark:bg-slate-800 text-gray-400">
+                        <span>3</span>
+                    </div>
+                    <span class="text-xs mt-1 text-gray-600 dark:text-slate-400">Pembayaran</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-2">
+        	<!-- User ID Form -->
+<div class="lg:col-span-3">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4 text-gray-900 dark:text-slate-100">Masukkan Tujuan</h2>
+        <form id="user-data-form">
+            <div class="space-y-4">
+                <div>
+                   
+                    <% if (providerSlug === 'mobile-legends-bb' || providerSlug === 'magic-chess-go-go') { %>
+                    	
+                    <!-- Visible inputs for Mobile Legends -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    	<label for="user-id" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        User ID
+                    </label>
+                        <input type="text" id="ml-id-input"
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+                            placeholder="Masukkan User ID (angka)" inputmode="numeric" pattern="^\d+$"
+                            title="Hanya angka untuk ID" autocomplete="off" required>
+                            	
+                         <label for="user-id" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        Server/Zone ID
+                    </label>
+                        <input type="text" id="ml-server-input"
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+                            placeholder="Masukkan Server/Zone ID (angka)" inputmode="numeric" pattern="^\d+$"
+                            title="Hanya angka untuk Server/Zone ID" autocomplete="off" required>
+                    </div>
+
+                    <!-- Hidden single element yang dikirim ke JS/backend -->
+                    <input type="hidden" id="user-id" name="user-id" value="" required
+                        pattern="^[A-Za-z0-9@._-]+(\|\d+)?$">
+
+                    <p class="text-xs text-gray-500 dark:text-slate-400 mt-2">
+                        Untuk menemukan ID Pengguna Anda, klik avatar Anda di pojok kiri atas layar dan buka tab Info
+                        Umum. ID Pengguna Anda akan ditampilkan di bawah Nama Panggilan Anda. Silakan masukkan ID
+                        Pengguna lengkap di sini, mis. <strong>12345678 (1234).</strong>
+                    </p>
+
+                    <% } else if (providerSlug === 'genshin-impact') { %>
+                    <!-- Input untuk Genshin Impact -->
+                    	<label for="user-id" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        User ID
+                    </label>
+                    <input type="text" id="user-id" name="user-id"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+                        placeholder="Masukkan User ID" required pattern="^\d+$" title="Hanya angka untuk ID">
+
+                    <label for="server-id" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mt-4 mb-1">
+                        Server
+                    </label>
+                    <select id="server-id" name="server-id"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+                        required>
+                        <option value="" disabled selected>Pilih Server</option>
+                        <option value="os_asia">Asia</option>
+                        <option value="os_euro">Europe</option>
+                        <option value="os_usa">America</option>
+                        <option value="os_cht">TW, HK, MO</option>
+                    </select>
+
+                    <p class="text-xs text-gray-500 dark:text-slate-400 mt-2">
+                        Masukkan User ID Genshin Impact Anda dan pilih server yang sesuai.
+                    </p>
+
+                    <% } else { %>
+                    <!-- Default single input untuk provider lain -->
+                    	<label for="user-id" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        ID / Nomor / Email
+                    </label>
+                    <input type="text" id="user-id" name="user-id"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+                        placeholder="12345678 / 0812345678 / example@gmail.com" required
+                        pattern="^[A-Za-z0-9@._-]+(\|[A-Za-z0-9]+)?$"
+                        title="Hanya boleh angka, huruf, email, dan opsional zone dengan tanda |">
+
+                    <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">
+                        Masukkan ID / nomor / email. Jika perlu sertakan zone/server/refs setelah tanda
+                        <code>|</code>. <br>
+                        Contoh: <strong>12345678</strong> atau <strong>0812345678</strong> atau
+                        <strong>email@domain.com</strong><br>
+                        Untuk zone: <strong>ID|ZONE</strong>
+                    </p>
+                    <% } %>
+                </div>
+                <div id="name-check-area" class="hidden text-sm">
+                    <p id="name-check-result" class="name-result text-gray-600 dark:text-slate-300 mt-1">Belum dicek.</p>
+                </div>
+                <div class="hidden pt-4">
+                    <button type="button" id="check-name-btn"
+                        class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors">Check
+                        Nama / Cek Tujuan</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+            <!-- Product Selection -->
+            <div class="lg:col-span-3">
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6 mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold mb-0 text-gray-900 dark:text-slate-100">Pilih Nominal</h2>
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm text-gray-500 dark:text-slate-300"></label>
+                            <select id="sort" class="px-2 py-1 rounded border dark:bg-slate-700 dark:border-slate-600">
+                                <option value="price_asc">Harga: Termurah → Mahal</option>
+                                <option value="price_desc">Harga: Mahal → Termurah</option>
+                                <option value="name_asc">Nama: A → Z</option>
+                                <option value="name_desc">Nama: Z → A</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Product Filters (TYPE selection) -->
+                    <div class="flex items-center gap-2 mb-4">
+                        <button id="type-scroll-left" class="p-2 rounded bg-gray-100 dark:bg-slate-700 hidden md:inline-flex"><i class="fa-solid fa-chevron-left"></i></button>
+                        <div id="filters-wrap" class="flex-1 overflow-x-auto no-scrollbar">
+                            <div id="filters-container" class="flex gap-2 px-1 py-1"></div>
+                        </div>
+                        <button id="type-scroll-right" class="p-2 rounded bg-gray-100 dark:bg-slate-700 hidden md:inline-flex"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+
+                    <!-- Products Grid -->
+                    <div class="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-5" id="products-grid" aria-live="polite"></div>
+                </div>
+            </div>
+
+            <!-- Order Summary + Payment Methods -->
+            <div class="lg:col-span-3">
+                <div id="order-summary" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6">
+                    <h2 class="text-lg font-semibold mb-4 text-gray-900 dark:text-slate-100">Ringkasan Pesanan</h2>
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-lg overflow-hidden">
+                                <% if (providerLogo) { %>
+                                    <img src="<%= providerLogo %>" alt="<%= safeProviderName %>" class="w-full h-full object-cover">
+                                <% } else { %>
+                                    <div class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-slate-700 text-blue-600 font-bold">US</div>
+                                <% } %>
+                            </div>
+                            <div>
+                                <h3 class="font-medium text-gray-900 dark:text-slate-100"><%= safeProviderName %></h3>
+                                <p class="text-sm text-gray-500 dark:text-slate-400"><%= categoryName || categorySlug || '' %></p>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-200 dark:border-slate-700 pt-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-gray-600 dark:text-slate-300">Produk</span>
+                                <span class="font-medium text-gray-900 dark:text-slate-100" id="selected-product">-</span>
+                            </div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-gray-600 dark:text-slate-300">Harga</span>
+                                <span class="font-medium text-gray-900 dark:text-slate-100" id="selected-price">Rp 0</span>
+                            </div>
+                            <div class="flex justify-between items-center text-green-600 dark:text-green-400 mb-2">
+                                <span>ID / Nomor / Email</span>
+                                <span id="selected-target">-</span>
+                            </div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-gray-600 dark:text-slate-300">Metode</span>
+                                <span class="font-medium text-gray-900 dark:text-slate-100" id="selected-method">-</span>
+                            </div>
+                            <!-- NEW: Admin fee display -->
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-gray-600 dark:text-slate-300">Biaya Admin</span>
+                                <div class="text-right">
+                                    <div id="admin-amount" class="font-medium text-gray-900 dark:text-slate-100">Rp 0</div>
+                                    <div id="admin-percent" class="text-xs text-gray-500 dark:text-slate-400">-</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- NEW: Product note (hidden when empty) -->
+                        <div id="product-note-wrapper" class="border-t border-gray-200 dark:border-slate-700 pt-4 hidden">
+                            <h4 class="text-sm font-semibold text-gray-700 dark:text-slate-200 mb-1">Catatan</h4>
+                            <div id="product-note" class="text-sm text-gray-600 dark:text-slate-300"></div>
+                        </div>
+
+                        <!-- Payment methods -->
+                        <div class="border-t border-gray-200 dark:border-slate-700 pt-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <h4 class="text-sm font-semibold text-gray-700 dark:text-slate-200 mb-0">Pilih Metode Pembayaran</h4>
+                                <button id="payment-toggle-btn" type="button" aria-expanded="true" title="Tutup / Buka metode pembayaran"
+                                    class="p-1 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 shadow-sm">
+                                    <i id="payment-toggle-icon" class="fa-solid fa-chevron-down"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- existing ovo-phone-wrapper above -->
+<div id="ovo-phone-wrapper" class="hidden">
+  <label for="ovo-phone" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Nomor OVO</label>
+  <input type="tel" id="ovo-phone" class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-300 focus:border-transparent" placeholder="08xxx">
+  <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">
+    Masukkan nomor OVO Anda untuk pembayaran.
+  </p>
+</div>
+
+<!-- NEW: email wrapper placed right after ovo-phone-wrapper -->
+<div id="email-wrapper" class="mt-3 mb-8">
+  <label for="payment-email" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Email (untuk e-receipt)</label>
+  <input type="email" id="payment-email" name="payment-email" autocomplete="email"
+         class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+         placeholder="nama@domain.com">
+  <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">
+    Masukkan email untuk konfirmasi dan bukti pembayaran.
+  </p>
+</div>
+                        
+                            <div id="payment-methods-wrapper" class="transition-all duration-300 ease-in-out">
+                                <div id="payment-methods-grid" class="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-5">
+                                    <!-- rendered by JS -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-200 dark:border-slate-700 pt-4">
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold text-gray-900 dark:text-slate-100">Total</span>
+                                <span class="font-bold text-lg text-blue-600 dark:text-blue-400" id="total-price">Rp 0</span>
+                            </div>
+                        </div>
+
+                        <div class="pt-4">
+                            <button id="checkout-btn" type="button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
+                                Lanjutkan Pembayaran
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="glass shadow-sm bg-white/70 text-gray-800 dark:bg-slate-900 dark:text-slate-200 py-10">
+    <div class="container mx-auto px-4 md:px-6">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+
+        <!-- Logo & Deskripsi -->
+        <div class="md:col-span-5 lg:col-span-6">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-pink-500 flex items-center justify-center shadow-lg">
+   		   <img src="/img/favlogo.jpg" alt="Logo" class="rounded-lg w-full h-full object-contain" />
+  		  </div>
+            <div>
+              <p class="font-semibold text-lg text-gray-900 dark:text-white"><%= config.name %></p>
+              <p class="text-xs text-gray-500 dark:text-slate-400 -mt-1">Solusi Top-Up Terpercaya</p>
+            </div>
+          </div>
+
+          <div class="mt-3 text-sm text-gray-600 dark:text-slate-300 leading-relaxed whitespace-normal break-words max-w-[65ch]" style="hyphens:auto;">
+            <p>
+              <%= config.name %> adalah platform top-up terpercaya untuk 
+              <span class="font-medium text-gray-800 dark:text-slate-100">game online, pulsa & data, voucher digital, serta akun premium</span>.
+              Kami menghadirkan layanan cepat, aman, dan praktis dengan dukungan pelanggan 24/7.
+            </p>
+            
+            <div class="<%= config.legality_information ? '' : 'hidden' %>">
+
+  <p class="mt-2">
+    Proyek ini dikembangkan oleh
+    <span class="font-medium text-gray-800 dark:text-slate-100">PT Inovixa Technologies Solution</span> sebagai wujud inovasi digital
+    untuk memudahkan transaksi online masyarakat Indonesia.
+    Kunjungi kami di
+    <a href="https://inovixa.web.id" target="_blank" rel="noopener" class="underline text-blue-600 dark:text-blue-400 hover:opacity-90">inovixa.web.id</a>.
+  </p>
+
+  <ul class="mt-3 space-y-1 text-xs text-gray-500 dark:text-slate-400">
+    <li>
+      <i class="fa-solid fa-file-contract mr-1 text-gray-400"></i>
+      <strong>Nomor Administrasi Hukum Umum (AHU):</strong>
+      AHU-038360.AH.01.30.Tahun 2025
+    </li>
+    <li>
+      <i class="fa-solid fa-file-signature mr-1 text-gray-400"></i>
+      <strong>Nomor Induk Berusaha (NIB):</strong>
+      2809250003254
+    </li>
+    <li>
+      <i class="fa-solid fa-id-card mr-1 text-gray-400"></i>
+      <strong>Nomor Pokok Wajib Pajak (NPWP):</strong>
+      10.000.000.0-516.7828
+    </li>
+  </ul>
+
+</div>
+            <p class="hidden mt-2 text-xs">
+              <a href="https://inovixa.web.id/legality" target="_blank" rel="noopener" 
+                 class="underline text-blue-600 dark:text-blue-400 hover:opacity-90">
+                Lihat detail legalitas perusahaan →
+              </a>
+            </p>
+          </div>
+        </div>
+
+        <!-- Link Cepat -->
+        <div class="md:col-span-2">
+          <h4 class="font-semibold mb-3 text-gray-900 dark:text-white">Link Cepat</h4>
+          <ul class="text-sm space-y-2 text-gray-600 dark:text-slate-300">
+            <li><a href="/status" class="hover:text-blue-600 dark:hover:text-blue-400">Status Pesanan</a></li>
+            <li><a href="/syarat-dan-ketentuan" class="hover:text-blue-600 dark:hover:text-blue-400">Syarat dan Ketentuan</a></li>
+            <li><a href="/faq" class="hover:text-blue-600 dark:hover:text-blue-400">FAQ</a></li>
+          </ul>
+        </div>
+
+        <!-- Bantuan -->
+        <div class="md:col-span-2">
+          <h4 class="font-semibold mb-3 text-gray-900 dark:text-white">Bantuan</h4>
+          <ul class="text-sm space-y-2 text-gray-600 dark:text-slate-300">
+            <li><a href="/support" class="hover:text-blue-600 dark:hover:text-blue-400">Hubungi Kami</a></li>
+            <li><a href="/panduan" class="hover:text-blue-600 dark:hover:text-blue-400">Panduan</a></li>
+            <li><a href="/refund-dan-kebijakan" class="hover:text-blue-600 dark:hover:text-blue-400">Refund & Kebijakan</a></li>
+          </ul>
+        </div>
+
+        <!-- Ikuti Kami + Pembayaran -->
+        <div class="md:col-span-3 lg:col-span-2">
+          <h4 class="font-semibold mb-3 text-gray-900 dark:text-white">Ikuti Kami</h4>
+          <div class="flex flex-wrap items-center gap-3 text-gray-600 dark:text-slate-300">
+            <%- config.socmed %>
+          </div>
+
+          <!-- Pembayaran -->
+          <div class="mt-6">
+            <h5 class="text-sm font-semibold mb-2 text-gray-900 dark:text-white">Metode Pembayaran</h5>
+            <div class="flex gap-2 items-center">
+              <img src="/img/payment.png" alt="Payment" class="mx-auto rounded max-w-full h-auto" />
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Copyright -->
+      <div class="border-t border-gray-200 dark:border-slate-700 mt-8 pt-4 text-center text-xs text-gray-500 dark:text-slate-400">
+        &copy; <%= config.footer %>
+      </div>
+    </div>
+  </footer>
+
+    <!-- Fixed bottom order bar -->
+    <div id="bottom-order-bar" class="hidden" aria-hidden="true">
+        <div class="bar-inner glass">
+            <div class="bar-left">
+                <div id="bottom-thumb" class="product-thumb">US</div>
+                <div class="product-info">
+                    <div id="bottom-name" class="product-name">Pilih produk</div>
+                    <div id="bottom-price" class="product-price">Rp 0</div>
+                </div>
+            </div>
+            <div class="bar-action">
+                <button id="bottom-order-btn" class="btn-order" type="button">
+                    Pesan Sekarang
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scroll top (will be shown/positioned by JS) -->
+    <button id="scroll-top" class="p-4 rounded-full shadow-lg bg-white dark:bg-slate-700 hover:shadow-2xl focus:outline-none" aria-label="Scroll ke atas">
+        <i class="fas fa-chevron-up text-gray-700 dark:text-slate-200"></i>
+    </button>
+
+    <!-- Script -->
+    	<script>
+    	// --- KODE REVISI: Mencegah Refresh saat Enter ---
+
+const userForm = document.getElementById('user-data-form');
+
+if (userForm) {
+    userForm.addEventListener('keydown', function(e) {
+        // Cek jika tombol yang ditekan adalah ENTER (KeyCode 13)
+        if (e.key === 'Enter' || e.keyCode === 13) {
+            e.preventDefault(); // 1. Mencegah form submit / refresh halaman
+            e.stopPropagation(); // 2. Hentikan event bubbling
+
+            // 3. Tutup keyboard HP (opsional, agar user merasa input selesai)
+            if (document.activeElement) {
+                document.activeElement.blur();
+            }
+            
+            return false;
+        }
+    });
+
+    // Tambahan keamanan: Mencegah event submit standar HTML
+    userForm.addEventListener('submit', function(e) {
+        // Kita prevent default submit karena proses order Anda menggunakan AJAX/Fetch (JS)
+        // bukan submit form HTML biasa.
+        e.preventDefault(); 
+        return false;
+    });
+}
+
+  (function(){
+    const form = document.getElementById('user-data-form');
+    if (!form) return;
+
+    // hanya aktif kalau provider mobile-legend (elemen akan ada/enggak tergantung EJS)
+    const mlId = document.getElementById('ml-id-input');
+    const mlServer = document.getElementById('ml-server-input');
+    const hiddenUserId = document.getElementById('user-id'); // selalu ada: hidden (mobile) atau visible (lain)
+
+    function updateHidden() {
+      if (!hiddenUserId) return;
+      if (mlId && mlServer) {
+        const idVal = mlId.value.trim();
+        const serverVal = mlServer.value.trim();
+        if (!idVal) {
+          hiddenUserId.value = '';
+          hiddenUserId.removeAttribute('required');
+        } else {
+          hiddenUserId.value = serverVal ? `${idVal}|${serverVal}` : idVal;
+          hiddenUserId.setAttribute('required', ''); // pastikan required jika ada isi
+        }
+      }
+      // jika bukan mobile-legend, tidak perlu gabung (hiddenUserId adalah input visible)
+    }
+
+    // event listeners untuk live update (only when ML inputs present)
+    if (mlId && mlServer) {
+      mlId.addEventListener('input', updateHidden);
+      mlServer.addEventListener('input', updateHidden);
+      // inisialisasi awal
+      updateHidden();
+    }
+
+    // extra safety: sebelum submit, pastikan hiddenUserId valid
+    form.addEventListener('submit', function (e) {
+      if (!hiddenUserId) return;
+      // jika kosong -> block submit dan beri feedback
+      if (!hiddenUserId.value.trim()) {
+        e.preventDefault();
+        // simple feedback; ubah sesuai UI (toast/modal) kalau perlu
+        const warn = document.createElement('div');
+        warn.className = 'mt-2 text-sm text-red-600';
+        warn.textContent = 'Mohon isi ID dan Server (untuk Mobile Legends) atau ID tujuan.';
+        // append once
+        if (!form.querySelector('.ml-warning')) {
+          warn.classList.add('ml-warning');
+          form.appendChild(warn);
+          setTimeout(()=> warn.remove(), 4000);
+        }
+        return false;
+      }
+    });
+  })();
+</script>
+
+    <script>
+        const IS_USER_LOGGED_IN = <%= (typeof user !== 'undefined' && user) || (typeof locals !== 'undefined' && locals.user) ? 'true' : 'false' %>;
+        
+        // [REVISI] Gunakan 'let' agar nilai bisa diupdate oleh fetch API
+        // Nilai awal tetap dari EJS agar loading cepat
+        let CURRENT_USER_BALANCE = <%= (typeof user !== 'undefined' && user && user.balance) ? user.balance : 0 %>;
+
+        // [REVISI] Fungsi untuk sinkronisasi saldo real-time & update UI Payment
+        async function syncUserBalance() {
+            if (!IS_USER_LOGGED_IN) return;
+
+            try {
+                const response = await fetch('/api/user/profile-data');
+                const data = await response.json();
+
+                if (data.ok) {
+                    // 1. Update variabel global
+                    CURRENT_USER_BALANCE = Number(data.balance);
+
+                    // 2. Update tampilan Header (agar sinkron)
+                    const headerBal = document.getElementById('user-balance-header');
+                    const mobileBal = document.getElementById('user-balance-mobile');
+                    if (headerBal) headerBal.textContent = formatRupiah(CURRENT_USER_BALANCE);
+                    if (mobileBal) mobileBal.textContent = formatRupiah(CURRENT_USER_BALANCE);
+
+                    // 3. PENTING: Render ulang metode pembayaran agar validasi saldo terupdate
+                    // Cek apakah function renderDepositMethods sudah tersedia dan array depositMethods ada isinya
+                    if (typeof renderDepositMethods === 'function' && typeof depositMethods !== 'undefined' && depositMethods.length > 0) {
+                        renderDepositMethods(); 
+                    }
+                }
+            } catch (err) {
+                console.error('Gagal sinkronisasi saldo:', err);
+            }
+        }
+
+        // Jalankan sinkronisasi saat halaman dimuat & set interval
+        if (IS_USER_LOGGED_IN) {
+            // Tunggu sebentar agar renderDepositMethods siap, lalu sync
+            setTimeout(syncUserBalance, 1000); 
+            // Cek saldo setiap 10 detik
+            setInterval(syncUserBalance, 10000);
+        }
+
+        // -------------------------
+        // Server-injected data (Sisa kode di bawah tetap sama)
+        // -------------------------
+        const rawProducts = <%- JSON.stringify(products || []) %>;
+        // ... dst
+        
+        const providerSlug = '<%= providerSlug || "" %>';
+        const providerNameServer = '<%= (providerName || providerSlug || "Provider") %>';
+        const categorySlug = '<%= categorySlug || "" %>';
+        const categoryNameServer = '<%= categoryName || categorySlug || "" %>';
+        const SHOW_ALL = <%= (typeof showAllCategory !== 'undefined' ? (showAllCategory ? 'true' : 'false') : 'true') %>;
+
+        // expose providerLogo to JS (if any)
+        const providerLogo = '<%= providerLogo || "" %>';
+
+        // -------------------------
+        // Utilities
+        // -------------------------
+        function slugify(s){ return String(s||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-'); }
+        function formatCurrency(n){ return Number(n||0).toLocaleString('id-ID'); }
+        function endsWithTopup(v){ if (!v) return false; return /\btopup\s*$/i.test(String(v).trim()); }
+        function getPrice(it){
+            if (!it) return 0;
+            const keys=['price','harga','amount','nominal','sell_price','sellPrice','value'];
+            for (const k of keys){ if (it[k] != null && it[k] !== ''){ const n=Number(it[k]); if(!Number.isNaN(n)) return n; } }
+            for (const k in it){
+                if (typeof it[k] === 'string' && /\d/.test(it[k])){
+                    const n = Number(String(it[k]).replace(/[^0-9.-]+/g,''));
+                    if(!Number.isNaN(n)) return n;
+                }
+            }
+            return 0;
+        }
+        function getName(it){ if (!it) return ''; return it.name || it.title || it.product || it.keterangan || it.code || it.kd || it.kode || ''; }
+        function getCode(it){ if (!it) return ''; return it.code || it.kd || it.kode || it.product_code || it.sku || it.id || ''; }
+        function escapeHtml(s){ if (s==null) return ''; return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
+
+        // -------------------------
+        // DOM refs
+        // -------------------------
+        const filtersContainer = document.getElementById('filters-container');
+        const productsGrid = document.getElementById('products-grid');
+        const sortSelect = document.getElementById('sort');
+        const selectedProductEl = document.getElementById('selected-product');
+        const selectedPriceEl = document.getElementById('selected-price');
+        const selectedTargetEl = document.getElementById('selected-target');
+        const selectedMethodEl = document.getElementById('selected-method');
+        const paymentGrid = document.getElementById('payment-methods-grid');
+        const checkoutBtn = document.getElementById('checkout-btn');
+        const userDataForm = document.getElementById('user-data-form');
+        const userIdInput = document.getElementById('user-id'); // single input (visible or hidden depending template)
+        const nameCheckBtn = document.getElementById('check-name-btn');
+        const nameCheckResult = document.getElementById('name-check-result');
+        const typeScrollLeft = document.getElementById('type-scroll-left');
+        const typeScrollRight = document.getElementById('type-scroll-right');
+        const filtersWrap = document.getElementById('filters-wrap');
+        const paymentToggleBtnEl = document.getElementById('payment-toggle-btn');
+        const paymentMethodsWrapperEl = document.getElementById('payment-methods-wrapper');
+        const paymentToggleIcon = document.getElementById('payment-toggle-icon');
+        const productNoteWrapper = document.getElementById('product-note-wrapper');
+        const productNoteEl = document.getElementById('product-note');
+        const ovoPhoneWrapper = document.getElementById('ovo-phone-wrapper');
+        const ovoPhoneInput = document.getElementById('ovo-phone');
+
+        // NEW DOM refs for email and Mobile Legends inputs
+        const emailWrapper = document.getElementById('email-wrapper');
+        const emailInput = document.getElementById('payment-email');
+        const mlIdInput = document.getElementById('ml-id-input');
+        const mlServerInput = document.getElementById('ml-server-input');
+
+        // admin display refs
+        const adminAmountEl = document.getElementById('admin-amount');
+        const adminPercentEl = document.getElementById('admin-percent');
+
+        // bottom bar refs
+        const bottomBar = document.getElementById('bottom-order-bar');
+        const bottomName = document.getElementById('bottom-name');
+        const bottomPrice = document.getElementById('bottom-price');
+        const bottomThumb = document.getElementById('bottom-thumb');
+        const bottomBtn = document.getElementById('bottom-order-btn');
+
+        // scroll-top ref
+        const scrollTopBtn = document.getElementById('scroll-top');
+
+        // other refs
+        const orderSummaryEl = document.getElementById('order-summary');
+
+        // -------------------------
+        // State
+        // -------------------------
+        if (userIdInput) {
+          userIdInput.addEventListener("input", function () {
+            // hanya izinkan karakter tertentu
+            this.value = this.value.replace(/[^a-zA-Z0-9@._|\-]/g, "");
+          });
+        }
+
+        // If ML inputs exist, restrict them to digits as user types
+        if (mlIdInput) {
+          mlIdInput.addEventListener('input', function(){ this.value = this.value.replace(/[^0-9]/g,''); updateHiddenUserId(); });
+        }
+        if (mlServerInput) {
+          mlServerInput.addEventListener('input', function(){ this.value = this.value.replace(/[^0-9]/g,''); updateHiddenUserId(); });
+        }
+
+        let allProducts = Array.isArray(rawProducts) ? rawProducts.slice() : [];
+        let products = []; // sanitized
+        let types = []; // derived types
+        let selectedType = 'Semua';
+        let selectedProduct = null;
+        let depositMethods = []; // loaded from backend
+        let selectedDepositMethod = null;
+        let currentDeposit = null;
+        let totalPrice = 0; // total price (product + admin fee)
+
+        // --- NEW: nominal state (null | 'pulsa' | 'data')
+        let selectedNominal = null;
+
+        // -------------------------
+        // Sanitize input products (remove topup endings), dedupe, normalize type field
+        // -------------------------
+        function sanitize(list){
+            const out = [];
+            const seen = new Set();
+            for (const it of list || []){
+                const prov = String(it.provider || it.layanan || it.service || it.operator || it.name || '').trim();
+                const cat = String(it.category || it.type || it.group || '').trim();
+                const name = String(it.name || it.title || '').trim();
+                if (endsWithTopup(prov) || endsWithTopup(cat) || endsWithTopup(name)) continue;
+
+                const typeVal = (it.type || it.category || it.group || 'Umum');
+                const key = (getCode(it) || getName(it) || '') + '::' + getPrice(it) + '::' + String(typeVal);
+                if (seen.has(key)) continue;
+                seen.add(key);
+
+                it._type = String(typeVal);
+                out.push(it);
+            }
+            return out;
+        }
+
+        // -------------------------
+        // NEW: detect pulsa / data product (conservative)
+        // -------------------------
+        function isPulsaProduct(p){
+            if (!p) return false;
+            const s = (getName(p) + ' ' + (p._type||p.type||p.category||'') + ' ' + JSON.stringify(p)).toLowerCase();
+            if (/pulsa\b|voucher pulsa|topup/.test(s)) return true;
+            if (/\b(paket|data|kuota|mb|gb|internet)\b/.test(s)) return false;
+            return s.includes('pulsa');
+        }
+        function isDataProduct(p){
+            if (!p) return false;
+            const s = (getName(p) + ' ' + (p._type||p.type||p.category||'') + ' ' + JSON.stringify(p)).toLowerCase();
+            if (/\b(data|paket|kuota|mb\b|gb\b|internet)\b/.test(s)) return true;
+            return false;
+        }
+
+        // -------------------------
+        // Build types from products (Umum first, rest A→Z)
+        // Now respects selectedNominal (if set) and includes 'Semua' for pulsa/data when SHOW_ALL=true
+        // -------------------------
+        function buildTypes() {
+            const set = new Set();
+            for (const p of products) {
+                if (!p._type) p._type = String(p.type || p.category || p.group || 'Umum');
+
+                // apply nominal filter if active
+                if (selectedNominal === 'pulsa' && !isPulsaProduct(p)) continue;
+                if (selectedNominal === 'data' && !isDataProduct(p)) continue;
+
+                if (endsWithTopup(p._type)) continue;
+                set.add(String(p._type));
+            }
+            let arr = Array.from(set).filter(Boolean);
+            const mapLowerToReal = new Map();
+            arr.forEach(t => { mapLowerToReal.set((t||'').toString().toLowerCase(), t); });
+
+            const lowerKeys = Array.from(mapLowerToReal.keys()).filter(k => k !== 'umum');
+            lowerKeys.sort((a,b) => a.localeCompare(b, 'id', {sensitivity:'base'}));
+
+            const ordered = [];
+            if (mapLowerToReal.has('umum')) ordered.push(mapLowerToReal.get('umum'));
+            for (const k of lowerKeys) ordered.push(mapLowerToReal.get(k));
+
+            // NEW: when selectedNominal active, still provide 'Semua' option if SHOW_ALL = true
+            if (selectedNominal === 'pulsa' || selectedNominal === 'data') {
+                types = SHOW_ALL ? ['Semua', ...ordered] : [...ordered];
+            } else {
+                types = SHOW_ALL ? ['Semua', ...ordered] : [...ordered];
+            }
+
+            // ensure selectedType is valid (if not, pick 'Semua' when present)
+            if (!selectedType || !types.find(t => t === selectedType)) {
+                selectedType = types && types.length ? (types.includes('Semua') ? 'Semua' : types[0]) : null;
+            }
+        }
+
+        // -------------------------
+        // Render types as filter buttons (scrollable & responsive)
+        // -------------------------
+        function renderTypeFilters() {
+            if (!filtersContainer) return;
+            filtersContainer.innerHTML = '';
+            const unique = [];
+            const seen = new Set();
+            for (const t of types) {
+                const k = String(t || '').trim();
+                if (!k) continue;
+                if (seen.has(k.toLowerCase())) continue;
+                seen.add(k.toLowerCase());
+                unique.push(k);
+            }
+
+            if (unique.length === 0) {
+                const el = document.createElement('div');
+                el.className = 'text-xs text-gray-500 dark:text-slate-400';
+                el.textContent = 'Tidak ada jenis produk untuk kategori ini.';
+                filtersContainer.appendChild(el);
+                selectedType = null;
+                return;
+            }
+
+            // choose first if selectedType invalid/wrong
+            if (!selectedType || !unique.find(x => x === selectedType)) {
+                selectedType = unique.includes('Semua') ? 'Semua' : unique[0];
+            }
+
+            unique.forEach((t, idx) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'filter-btn px-3 py-1.5 text-sm rounded-full border border-gray-200 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 font-medium';
+                btn.textContent = t;
+                btn.dataset.type = t;
+                btn.setAttribute('role','tab');
+                btn.setAttribute('aria-selected', t === selectedType ? 'true' : 'false');
+                if (t === selectedType) btn.classList.add('active');
+
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('#filters-container .filter-btn').forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
+                    btn.classList.add('active'); btn.setAttribute('aria-selected','true');
+                    selectedType = t;
+                    renderProducts();
+                });
+
+                filtersContainer.appendChild(btn);
+            });
+
+            if (typeScrollLeft && typeScrollRight && filtersWrap) {
+                typeScrollLeft.onclick = ()=> filtersWrap.scrollBy({ left: -220, behavior: 'smooth' });
+                typeScrollRight.onclick = ()=> filtersWrap.scrollBy({ left: 220, behavior: 'smooth' });
+            }
+        }
+
+        // -------------------------
+        // Render products (sorted by sortSelect)
+        // Now respects selectedNominal first, then selectedType
+        // -------------------------
+        function renderProducts() {
+            if (!productsGrid) return;
+            productsGrid.innerHTML = '';
+
+            // apply nominal filter first
+            let list = products.slice();
+            if (selectedNominal === 'pulsa') list = list.filter(p => isPulsaProduct(p));
+            else if (selectedNominal === 'data') list = list.filter(p => isDataProduct(p));
+
+            // then apply type filter
+            const filter = selectedType || 'Semua';
+            if (filter !== 'Semua') {
+                list = list.filter(p => String(p._type || p.type || p.category || '').toLowerCase() === String(filter).toLowerCase());
+            }
+
+            if (!list.length) {
+                const empty = document.createElement('div');
+                empty.className = 'col-span-2 md:col-span-3 text-center text-sm text-gray-500 dark:text-slate-400 py-8';
+                if (selectedNominal === 'pulsa') empty.textContent = 'Tidak ada produk Pulsa untuk tipe ini.';
+                else if (selectedNominal === 'data') empty.textContent = 'Tidak ada produk Data untuk tipe ini.';
+                else empty.textContent = 'Tidak ada produk untuk tipe ini.';
+                productsGrid.appendChild(empty);
+                return;
+            }
+
+            const sortVal = sortSelect ? sortSelect.value : 'price_asc';
+            if (sortVal === 'price_asc') list.sort((a,b)=> getPrice(a) - getPrice(b));
+            else if (sortVal === 'price_desc') list.sort((a,b)=> getPrice(b) - getPrice(a));
+            else if (sortVal === 'name_asc') list.sort((a,b)=> (getName(a)||'').localeCompare(getName(b)||'', 'id', {sensitivity:'base'}));
+            else if (sortVal === 'name_desc') list.sort((a,b)=> (getName(b)||'').localeCompare(getName(a)||'', 'id', {sensitivity:'base'}));
+
+            for (const p of list) productsGrid.appendChild(createProductCard(p));
+        }
+
+        // -------------------------
+        // Create product card
+        // -------------------------
+        function createProductCard(product) {
+            const price = getPrice(product);
+            const code = getCode(product);
+            const name = getName(product) || code || 'Produk';
+
+            const card = document.createElement('div');
+            card.className = 'product-card bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl p-4 cursor-pointer';
+            card.tabIndex = 0;
+            card.setAttribute('role','button');
+            card.dataset.code = code || '';
+            card.dataset.price = price || 0;
+            card.dataset.name = name || '';
+
+            card.innerHTML = `
+                ${product.popular ? `<div class="absolute top-0 right-0 -mt-1 -mr-1"><span class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">POPULER</span></div>` : ''}
+                <div class="text-center pop-anim">
+                    <h3 class="font-semibold text-gray-900 dark:text-slate-100">${escapeHtml(name)}</h3>
+                    <div class="mt-2 text-blue-600 dark:text-blue-400 font-bold">Rp ${formatCurrency(price)}</div>
+                    <div class="mt-2 text-xs text-gray-500 dark:text-slate-400">${escapeHtml(String(product._type || product.type || product.category || ''))}</div>
+                </div>
+            `;
+
+            function selectCard() {
+                document.querySelectorAll('.product-card').forEach(c => { c.classList.remove('selected'); c.setAttribute('aria-pressed','false'); });
+                card.classList.add('selected'); card.setAttribute('aria-pressed','true');
+                selectedProduct = product;
+                updateOrderSummary(product);
+                try { document.getElementById('order-summary').scrollIntoView({behavior:'smooth', block:'center'}); } catch(e){}
+            }
+
+            card.addEventListener('click', selectCard);
+            card.addEventListener('keydown', (e)=> { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); selectCard(); } });
+
+            return card;
+        }
+
+        // -------------------------
+        // Format percent display
+        // -------------------------
+        function formatPercent(p){
+            if (p == null || p === '') return '-';
+            const n = Number(p);
+            if (Number.isNaN(n)) return '-';
+            if (Math.round(n) === n) return `${n}%`;
+            return `${n.toLocaleString('id-ID', { maximumFractionDigits: 2 })}%`;
+        }
+
+        // -------------------------
+        // Helper: get note from product (robust fallback)
+        // -------------------------
+        function getNoteFromProduct(prod){
+            if (!prod) return '';
+            let note = '';
+            if (typeof prod.note !== 'undefined' && prod.note !== null) note = prod.note;
+            else if (prod.data && (typeof prod.data.note !== 'undefined')) note = prod.data.note;
+            else if (prod.keterangan) note = prod.keterangan;
+            else if (prod.desc) note = prod.desc;
+            else if (prod.note_text) note = prod.note_text;
+            if (Array.isArray(note)) note = note.join('\n');
+            return String(note || '').trim();
+        }
+
+        // -------------------------
+        // Parse single input into userId and zone (zone optional)
+        // -------------------------
+        function parseUserInput(raw) {
+            const s = String(raw || '').trim();
+            if (!s) return { userId: '', zone: '' };
+            if (s.includes('|')) {
+                const parts = s.split('|').map(p => p.trim());
+                const userId = parts[0] || '';
+                const zone = parts.slice(1).join('|') || '';
+                return { userId, zone };
+            }
+            return { userId: s, zone: '' };
+        }
+
+        // -------------------------
+        // Check if method is OVO
+        // -------------------------
+        function isOVO(methodName) {
+            return methodName && String(methodName).toLowerCase().includes('ovo');
+        }
+
+        // -------------------------
+        // Helper: update hidden user-id when ML inputs exist
+        // -------------------------
+        function updateHiddenUserId() {
+            if (!userIdInput) return;
+            if (mlIdInput) {
+                const idVal = (mlIdInput.value || '').trim();
+                const serverVal = (mlServerInput && mlServerInput.value) ? mlServerInput.value.trim() : '';
+                if (!idVal) {
+                    // keep existing value if user typed into main input (but likely empty)
+                    // remove required if empty
+                    userIdInput.value = '';
+                    userIdInput.removeAttribute('required');
+                    if (selectedTargetEl) selectedTargetEl.textContent = userIdInput.value || '-';
+                    return;
+                }
+                const combined = serverVal ? `${idVal}|${serverVal}` : idVal;
+                userIdInput.value = combined;
+                userIdInput.setAttribute('required','');
+                if (selectedTargetEl) selectedTargetEl.textContent = combined || '-';
+            } else {
+                // no ml inputs: nothing to merge
+                if (selectedTargetEl) selectedTargetEl.textContent = userIdInput ? (userIdInput.value || '-') : '-';
+            }
+        }
+
+        // -------------------------
+        // Order summary update
+        // -------------------------
+        if (userIdInput) {
+          userIdInput.addEventListener('input', () => {
+            if (selectedTargetEl) {
+              selectedTargetEl.textContent = userIdInput.value || '-';
+            }
+            // if ml inputs present, keep them in sync only if combined value updated by user (rare)
+            if (mlIdInput && mlServerInput) {
+              // do not overwrite ml inputs here; just keep summary in sync via updateHiddenUserId if needed
+            }
+          });
+        }
+
+        /*function updateOrderSummary(product) {
+            if (!product) {
+                selectedProductEl.textContent = '-';
+                selectedPriceEl.textContent = 'Rp 0';
+                if (selectedTargetEl) selectedTargetEl.textContent = userIdInput ? (userIdInput.value || '-') : '-';
+                selectedMethodEl.textContent = '-';
+                const totalEl = document.getElementById('total-price');
+                if (totalEl) totalEl.textContent = 'Rp 0';
+                if (adminAmountEl) adminAmountEl.textContent = `Rp 0`;
+                if (adminPercentEl) adminPercentEl.textContent = '-';
+                if (productNoteWrapper) productNoteWrapper.classList.add('hidden');
+                if (productNoteEl) productNoteEl.innerHTML = '';
+                updateBottomBar(null);
+                adjustScrollTopPosition();
+                return;
+            }
+
+            const price = getPrice(product);
+            selectedProductEl.textContent = getName(product) || getCode(product) || '-';
+            selectedPriceEl.textContent = `Rp ${formatCurrency(price)}`;
+
+            // ensure hidden user-id up-to-date (for ML)
+            updateHiddenUserId();
+
+            if (selectedTargetEl) selectedTargetEl.textContent = userIdInput ? (userIdInput.value || '-') : '-';
+
+            let fixedFee = 0;
+            let percentFee = 0;
+            let percentFeeAmount = 0;
+            
+            if (selectedDepositMethod) {
+                fixedFee = Number(selectedDepositMethod.fee || 0);
+                percentFee = Number(selectedDepositMethod.fee_persen || selectedDepositMethod.feePercent || 0);
+                percentFeeAmount = Math.ceil((percentFee / 100) * price);
+            }
+
+            const adminTotal = fixedFee + percentFeeAmount;
+            totalPrice = price + adminTotal;
+
+            if (adminAmountEl) adminAmountEl.textContent = `Rp ${formatCurrency(adminTotal)}`;
+            if (adminPercentEl) {
+                if (selectedDepositMethod) {
+                    const percentDisplay = formatPercent(percentFee);
+                    const fixedDisplay = fixedFee ? `Rp ${formatCurrency(fixedFee)}` : '';
+                    adminPercentEl.textContent = fixedFee ? `${fixedDisplay} + ${percentDisplay}` : `${percentDisplay}`;
+                } else {
+                    adminPercentEl.textContent = '-';
+                }
+            }
+
+            const totalEl = document.getElementById('total-price');
+            if (totalEl) totalEl.textContent = `Rp ${formatCurrency(totalPrice)}`;
+
+            const note = getNoteFromProduct(product);
+            if (productNoteWrapper && productNoteEl) {
+                if (note) {
+                    productNoteEl.innerHTML = escapeHtml(note).replace(/\n/g, '<br>');
+                    productNoteWrapper.classList.remove('hidden');
+                } else {
+                    productNoteEl.innerHTML = '';
+                    productNoteWrapper.classList.add('hidden');
+                }
+            }
+
+            updateBottomBar(product);
+            adjustScrollTopPosition();
+        }*/
+        
+        // true = customer pays the fee (fee ditambahkan ke total)
+// false = admin pays the fee (total tetap price, customer tidak dikenakan fee)
+const feePaidByCustomer = '<%= feeByCustomer %>' === 'true';
+
+function updateOrderSummary(product) {
+    if (!product) {
+        selectedProductEl.textContent = '-';
+        selectedPriceEl.textContent = 'Rp 0';
+        if (selectedTargetEl) selectedTargetEl.textContent = userIdInput ? (userIdInput.value || '-') : '-';
+        selectedMethodEl.textContent = '-';
+        const totalEl = document.getElementById('total-price');
+        if (totalEl) totalEl.textContent = 'Rp 0';
+        if (adminAmountEl) adminAmountEl.textContent = `Rp 0`;
+        if (adminPercentEl) adminPercentEl.textContent = '-';
+        if (productNoteWrapper) productNoteWrapper.classList.add('hidden');
+        if (productNoteEl) productNoteEl.innerHTML = '';
+        updateBottomBar(null);
+        adjustScrollTopPosition();
+        return;
+    }
+
+    const price = getPrice(product);
+    selectedProductEl.textContent = getName(product) || getCode(product) || '-';
+    selectedPriceEl.textContent = `Rp ${formatCurrency(price)}`;
+
+    // ensure hidden user-id up-to-date (for ML)
+    updateHiddenUserId();
+
+    if (selectedTargetEl) selectedTargetEl.textContent = userIdInput ? (userIdInput.value || '-') : '-';
+
+    let fixedFee = 0;
+    let percentFee = 0;
+    let percentFeeAmount = 0;
+    
+    if (selectedDepositMethod) {
+        fixedFee = Number(300) + Number(selectedDepositMethod.fee || 0);
+        percentFee = Number(selectedDepositMethod.fee_persen || selectedDepositMethod.feePercent || 0);
+        percentFeeAmount = Math.ceil((percentFee / 100) * price);
+    }
+
+    const adminTotal = fixedFee + percentFeeAmount;
+
+    // Jika customer yg bayar, tambahkan adminTotal ke totalPrice.
+    // Jika admin yg bayar, totalPrice tetap price (customer tidak kena fee).
+    totalPrice = feePaidByCustomer ? (price + adminTotal) : price;
+
+    // Tampilkan jumlah fee di UI sesuai siapa yg bayar:
+    if (adminAmountEl) {
+    if (feePaidByCustomer) {
+        adminAmountEl.textContent = `Rp ${formatCurrency(adminTotal)}`;
+        adminAmountEl.style.color = ''; // reset warna normal
+        adminAmountEl.style.fontWeight = ''; // reset tebal jika ingin normal
+    } else {
+        adminAmountEl.textContent = 'Free';
+        adminAmountEl.style.color = '';
+        adminAmountEl.style.fontWeight = '';
+    }
+}
+
+    if (adminPercentEl) {
+        if (selectedDepositMethod && feePaidByCustomer) {
+            const percentDisplay = formatPercent(percentFee);
+            const fixedDisplay = fixedFee ? `Rp ${formatCurrency(fixedFee)}` : '';
+            adminPercentEl.textContent = fixedFee ? `${fixedDisplay} + ${percentDisplay}` : `${percentDisplay}`;
+        } else {
+            // kalau admin yg bayar atau ga ada metode, sembunyikan detail fee
+            adminPercentEl.textContent = '';
+        }
+    }
+
+    const totalEl = document.getElementById('total-price');
+    if (totalEl) totalEl.textContent = `Rp ${formatCurrency(totalPrice)}`;
+
+    const note = getNoteFromProduct(product);
+    if (productNoteWrapper && productNoteEl) {
+        if (note) {
+            productNoteEl.innerHTML = escapeHtml(note).replace(/\n/g, '<br>');
+            productNoteWrapper.classList.remove('hidden');
+        } else {
+            productNoteEl.innerHTML = '';
+            productNoteWrapper.classList.add('hidden');
+        }
+    }
+
+    updateBottomBar(product);
+    adjustScrollTopPosition();
+}
+
+        // -------------------------
+        // Bottom fixed order bar logic
+        // -------------------------
+        function updateBottomBar(product) {
+            if (!bottomBar) return;
+
+            if (!product) {
+                bottomName.textContent = 'Pilih produk';
+                bottomPrice.textContent = 'Rp 0';
+
+                if (providerLogo) {
+                    bottomThumb.style.backgroundImage = `url(${providerLogo})`;
+                    bottomThumb.style.backgroundSize = 'cover';
+                    bottomThumb.style.backgroundPosition = 'center';
+                    bottomThumb.innerHTML = '';
+                } else {
+                    bottomThumb.style.backgroundImage = '';
+                    bottomThumb.textContent = 'US';
+                }
+
+                bottomBar.classList.add('hidden');
+                bottomBar.setAttribute('aria-hidden','true');
+                return;
+            }
+
+            const name = getName(product) || getCode(product) || 'Produk';
+            const price = getPrice(product) || 0;
+            bottomName.textContent = name;
+            bottomPrice.textContent = `Rp ${formatCurrency(price)}`;
+
+            let img = providerLogo || null;
+
+            if (!product.img_url) {
+                img = product.img_url;
+            }
+
+            if (img) {
+                bottomThumb.style.backgroundImage = `url(${img})`;
+                bottomThumb.style.backgroundSize = 'cover';
+                bottomThumb.style.backgroundPosition = 'center';
+                bottomThumb.textContent = '';
+            } else {
+                bottomThumb.style.backgroundImage = '';
+                bottomThumb.textContent = (name && name[0]) ? name[0].toUpperCase() : 'P';
+            }
+
+            checkOrderSummaryVisibility();
+        }
+
+        // Check visibility and observers (kept)
+        function checkOrderSummaryVisibility() {
+            if (!orderSummaryEl || !bottomBar) return;
+            const rect = orderSummaryEl.getBoundingClientRect();
+            const isVisible = (
+                rect.top >= 0 &&
+                rect.left >= 0 &&
+                rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+                rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+            );
+            if (isVisible && selectedProduct) {
+                bottomBar.classList.add('hidden');
+                bottomBar.setAttribute('aria-hidden','true');
+            } else if (selectedProduct) {
+                bottomBar.classList.remove('hidden');
+                bottomBar.setAttribute('aria-hidden','false');
+            }
+        }
+
+        // click behavior for bottom button (kept)
+        if (bottomBtn) {
+            bottomBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                // -------------------------
+        // [REVISI] Helper untuk Scroll & Highlight Input
+        // -------------------------
+        function highlightAndFocus(el) {
+            if (!el) return;
+            try {
+                // Scroll ke elemen agar terlihat di tengah layar
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Fokus agar user bisa langsung ketik
+                el.focus({ preventScroll: true }); 
+                // Efek visual highlight
+                el.classList.add('temp-highlight');
+                setTimeout(() => el.classList.remove('temp-highlight'), 1400);
+            } catch (err) {
+                console.error("Scroll error:", err);
+            }
+        }
+
+        // -------------------------
+        // [REVISI] Cegah Submit saat Enter & Tutup Keyboard
+        // -------------------------
+        if (userDataForm) {
+            userDataForm.addEventListener('keydown', function(e) {
+                // Jika tombol yang ditekan adalah Enter (kode 13)
+                if (e.key === 'Enter' || e.keyCode === 13) {
+                    e.preventDefault(); // Stop form submit / reload halaman
+                    
+                    // Jika elemen yang aktif adalah input text/number, lakukan blur untuk tutup keyboard
+                    if (document.activeElement && 
+                       (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT')) {
+                        document.activeElement.blur();
+                    }
+                    return false;
+                }
+            });
+        }
+
+        // -------------------------
+        // [REVISI] Logic Tombol "Pesan Sekarang" (Bottom Bar)
+        // -------------------------
+        if (bottomBtn) {
+            bottomBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+
+                // 1. Cek Input Spesifik Mobile Legends (Jika ada)
+                if (mlIdInput && mlServerInput) {
+                    if (!mlIdInput.value.trim()) {
+                        highlightAndFocus(mlIdInput);
+                        return;
+                    }
+                    if (!mlServerInput.value.trim()) {
+                        highlightAndFocus(mlServerInput);
+                        return;
+                    }
+                }
+
+                // 2. Cek Input Server Genshin Impact (Jika ada input dgn ID server-id)
+                const serverSelectEl = document.getElementById('server-id');
+                if (serverSelectEl) {
+                     // Cek apakah user input visible (user-id) kosong
+                     if (userIdInput && userIdInput.type !== 'hidden' && !userIdInput.value.trim()) {
+                        highlightAndFocus(userIdInput);
+                        return;
+                     }
+                     // Cek apakah dropdown server belum dipilih
+                     if (!serverSelectEl.value) {
+                        highlightAndFocus(serverSelectEl);
+                        return;
+                     }
+                }
+
+                // 3. Cek Input Standard (Single Input)
+                // Kita cek userIdInput hanya jika TIPE-nya bukan hidden. 
+                // Karena kalau hidden (kasus ML), validasi sudah dilakukan di step 1.
+                if (userIdInput && userIdInput.type !== 'hidden' && userIdInput.offsetParent !== null) {
+                    const rawInput = userIdInput.value.trim();
+                    if (!rawInput) {
+                        highlightAndFocus(userIdInput);
+                        return;
+                    }
+                }
+
+                // 4. Jika semua Input Aman -> Scroll ke Ringkasan Pesanan / Tombol Checkout
+                if (orderSummaryEl) {
+                    orderSummaryEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Opsional: Fokus ke tombol checkout jika ingin user langsung enter
+                    const checkout = document.getElementById('checkout-btn');
+                    if (checkout) checkout.focus({ preventScroll: true });
+                } else {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            });
+        }
+                const rawInput = (userIdInput && userIdInput.value || '').trim();
+                if (!rawInput) {
+                    try {
+                        userIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        userIdInput.focus({ preventScroll: true });
+                    } catch (err) {
+                        const rect = userIdInput.getBoundingClientRect();
+                        const absoluteTop = rect.top + window.pageYOffset - (window.innerHeight * 0.35);
+                        window.scrollTo({ top: Math.max(absoluteTop, 0), behavior: 'smooth' });
+                        try { userIdInput.focus({ preventScroll: true }); } catch(e){}
+                    }
+                    userIdInput.classList.add('temp-highlight');
+                    setTimeout(() => userIdInput.classList.remove('temp-highlight'), 1400);
+                    return;
+                }
+                if (orderSummaryEl) {
+                    orderSummaryEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    const checkout = document.getElementById('checkout-btn');
+                    if (checkout) checkout.focus({ preventScroll: true });
+                } else {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            });
+        }
+
+        // adjust scroll-top position so it sits above bottom-order-bar when visible
+        function adjustScrollTopPosition() {
+          if (!scrollTopBtn) return;
+          const defaultBottom = 24; // px
+          try {
+            if (bottomBar && !bottomBar.classList.contains('hidden')) {
+              const comp = window.getComputedStyle(bottomBar);
+              const bottomOffset = parseFloat(comp.bottom) || 18;
+              const height = bottomBar.getBoundingClientRect().height || 72;
+              const gap = 12;
+              const newBottom = Math.ceil(height + bottomOffset + gap);
+              scrollTopBtn.style.bottom = `${newBottom}px`;
+            } else {
+              scrollTopBtn.style.bottom = `${defaultBottom}px`;
+            }
+          } catch (e) {
+            scrollTopBtn.style.bottom = `${defaultBottom}px`;
+          }
+        }
+
+        // observers (kept)
+        function setupBottomBarObserver() {
+          if (!orderSummaryEl || !bottomBar) return;
+          const io = new IntersectionObserver((entries) => {
+            entries.forEach(en => {
+              if (en.isIntersecting) {
+                bottomBar.classList.add('hidden');
+                bottomBar.setAttribute('aria-hidden','true');
+              } else {
+                if (selectedProduct) {
+                  bottomBar.classList.remove('hidden');
+                  bottomBar.setAttribute('aria-hidden','false');
+                }
+              }
+              adjustScrollTopPosition();
+            });
+          }, { root: null, threshold: 0.02 });
+
+          io.observe(orderSummaryEl);
+        }
+
+        function setupBottomBar() {
+          updateBottomBar(selectedProduct || null);
+          setupBottomBarObserver();
+          window.addEventListener('resize', () => {
+            updateBottomBar(selectedProduct || null);
+            adjustScrollTopPosition();
+          });
+          window.addEventListener('scroll', () => {
+            if (!orderSummaryEl || !bottomBar) return;
+            const r = orderSummaryEl.getBoundingClientRect();
+            if (r.top < window.innerHeight && r.bottom > 0) {
+              bottomBar.classList.add('hidden');
+              bottomBar.setAttribute('aria-hidden','true');
+            } else if (selectedProduct) {
+              bottomBar.classList.remove('hidden');
+              bottomBar.setAttribute('aria-hidden','false');
+            }
+            adjustScrollTopPosition();
+          }, { passive: true });
+        }
+
+        (function setupScrollTopVisibility() {
+          if (!scrollTopBtn) return;
+          window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+              scrollTopBtn.style.display = 'block';
+            } else {
+              scrollTopBtn.style.display = 'none';
+            }
+            adjustScrollTopPosition();
+          }, { passive: true });
+
+          scrollTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+        })();
+
+        // -------------------------
+        // Deposit methods + render (kept)
+        // -------------------------
+        function getCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+}
+
+        async function loadDepositMethods(type='') {
+            try {
+                const res = await fetch('/api/deposit-methods', {
+                    method: 'POST',
+                    headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken()
+            },
+                    body: JSON.stringify({ type })
+                });
+                if (!res.ok) throw new Error('Gagal memuat metode pembayaran');
+                const j = await res.json();
+                if (!j.ok || !Array.isArray(j.data)) {
+                    depositMethods = [];
+                    renderDepositMethods();
+                    return;
+                }
+
+                let mapped = (j.data || []).map(m => {
+                    const nameRaw = m.name || m.method || m.label || m.nama || '';
+                    const methodRaw = (m.method || m.code || m.id || nameRaw || '').toString();
+                    const typeRaw = (m.type || m.tipe || '').toString().toLowerCase();
+                    const minRaw = Number(m.min || m.minimum || m.min_deposit || 0);
+                    const maxRaw = Number(m.max || m.maximum || m.max_deposit || 0);
+                    return {
+                        method: methodRaw,
+                        id: String(methodRaw || '').toLowerCase(),
+                        name: String(nameRaw || methodRaw || '').toString(),
+                        type: String(typeRaw || '').toLowerCase(),
+                        min: Number(!Number.isNaN(minRaw) ? minRaw : 0),
+                        max: Number(!Number.isNaN(maxRaw) ? maxRaw : 0),
+                        fee: Number(m.fee || 0),
+                        fee_persen: Number(m.fee_persen || m.feePercent || 0),
+                        status: (m.status || m.state || '').toString().toLowerCase(),
+                        img_url: m.img_url || m.image || m.logo || null,
+                        raw: m
+                    };
+                });
+
+                const qrisfastIdx = mapped.findIndex(it => /qris.*fast|qrisfast|qris-?fast/.test(((it.name||it.method)||'').toLowerCase()));
+                if (qrisfastIdx !== -1) {
+                    const qf = mapped[qrisfastIdx];
+                    qf.min = 500;
+                    if (qf.raw) {
+                        try {
+                            if (typeof qf.raw.min !== 'undefined') qf.raw.min = 500;
+                            if (qf.raw.minimum) qf.raw.minimum = 500;
+                            if (qf.raw.min_deposit) qf.raw.min_deposit = 500;
+                            if (qf.raw.limits && typeof qf.raw.limits === 'object') {
+                                qf.raw.limits.min = 500;
+                                qf.raw.limits.minimum = 500;
+                            }
+                        } catch(e){}
+                    }
+                    mapped.splice(qrisfastIdx, 1);
+                    mapped.unshift(qf);
+                }
+
+                depositMethods = mapped;
+                renderDepositMethods();
+            } catch (err) {
+                console.error('loadDepositMethods', err);
+                depositMethods = [];
+                renderDepositMethods();
+            }
+        }
+
+        function renderDepositMethods() {
+            paymentGrid.innerHTML = '';
+            if (!depositMethods.length) {
+                paymentGrid.innerHTML = '<div class="col-span-full text-sm text-gray-500 dark:text-slate-400">Metode pembayaran tidak tersedia.</div>';
+                return;
+            }
+
+            for (const m of depositMethods) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'payment-card';
+                
+                // [LOGIC SALDO REVISI] 
+                const isSaldo = (m.method === 'SALDO');
+                
+                // Default value
+                let userBalance = 0;
+                let isLoggedIn = false;
+
+                if (isSaldo) {
+                    // Jika metode SALDO, paksa ambil data dari variable Global EJS
+                    // Ini memperbaiki bug saldo 0 / tidak sesuai session API
+                    isLoggedIn = IS_USER_LOGGED_IN;
+                    userBalance = isLoggedIn ? Number(CURRENT_USER_BALANCE) : 0;
+                }
+                
+                // Tentukan status disable
+                let isDisabled = false;
+                let statusText = '';
+                
+                // Cek status aktif dari API
+                if (m.status !== 'aktif' && m.status !== 'active') {
+                    isDisabled = true;
+                }
+                
+                if (isSaldo) {
+                    if (!isLoggedIn) {
+                        isDisabled = true;
+                        statusText = 'Login diperlukan';
+                    } else if (selectedProduct) {
+                         // Validasi saldo user (dari EJS) vs harga produk
+                         const price = getPrice(selectedProduct);
+                         if (userBalance < price) {
+                             isDisabled = true;
+                             statusText = 'Saldo tidak cukup';
+                         }
+                    }
+                }
+
+                if (isDisabled) btn.classList.add('disabled');
+                
+                btn.dataset.method = m.method || m.id;
+
+                const needsDarkBg = (m.name === 'QRIS' || m.name === 'QRIS INSTANT') ? 'dark:bg-white' : '';
+                
+                // Tampilan Icon
+                let iconHtml = '';
+                if (isSaldo) {
+                     iconHtml = `<div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-1"><i class="fa-solid fa-wallet text-xl"></i></div>`;
+                } else if (m.img_url) {
+                     iconHtml = `<img src="${escapeHtml(m.img_url)}" alt="${escapeHtml(m.name)}" class="max-h-10 ${needsDarkBg} mb-1" />`;
+                } else {
+                     iconHtml = `<div class="font-semibold mb-1">${escapeHtml((m.name||'').slice(0,2).toUpperCase())}</div>`;
+                }
+
+                // [TAMPILAN FEE / SALDO]
+                let feeHtml = '';
+                if (isSaldo) {
+                    if (isLoggedIn) {
+                        // Tampilkan saldo user yang benar
+                        btn.title = `Saldo Anda: Rp ${formatCurrency(userBalance)}`;
+                        feeHtml = `<div class="text-xs text-blue-600 mt-1 font-bold">Saldo: Rp ${formatCurrency(userBalance)}</div>`;
+                        
+                        // Jika disable karena saldo kurang, beri info merah
+                        if (statusText === 'Saldo tidak cukup') {
+                             feeHtml += `<div class="text-[10px] text-red-500 mt-0.5 font-semibold">Kurang Rp ${formatCurrency(getPrice(selectedProduct) - userBalance)}</div>`;
+                        } else if (statusText) {
+                             feeHtml += `<div class="text-[10px] text-red-500 mt-0.5">${statusText}</div>`;
+                        }
+                    } else {
+                        btn.title = 'Silakan Login';
+                        feeHtml = `<div class="text-xs text-red-500 mt-1">Silakan Login</div>`;
+                    }
+                } else {
+                    // Logic Fee & Persen (Sesuai Permintaan: Fee: Rp 200 (+0.7%))
+                    const feeFlat = m.fee || 0;
+                    const feePercent = m.fee_percent || m.fee_persen || 0;
+                    
+                    let feeString = `Rp ${formatCurrency(feeFlat)}`;
+                    if (feePercent > 0) {
+                        feeString += ` (+${feePercent}%)`;
+                    }
+
+                    btn.title = `${m.name} (Min: Rp ${formatCurrency(m.min||0)})`;
+                    feeHtml = `<div class="text-xs text-green-600 mt-1">Fee: ${feeString}</div>`;
+                }
+
+                btn.innerHTML = `
+                    <div class="w-full flex items-center justify-center flex-col">
+                        ${iconHtml}
+                    </div>
+                    <div class="label text-center leading-tight">${escapeHtml(m.name)}</div>
+                    ${feeHtml}
+                `;
+
+                // Event Listener Click
+                if (!isDisabled) {
+                    btn.addEventListener('click', () => {
+                        if (!selectedProduct) { alert('Pilih produk terlebih dahulu.'); return; }
+                        
+                        const price = getPrice(selectedProduct);
+
+                        if (isSaldo) {
+                            if (userBalance < price) return alert(`Saldo akun Anda tidak mencukupi. (Saldo: Rp ${formatCurrency(userBalance)})`);
+                        } else {
+                            if (m.min && price < m.min) return alert(`Nominal produk (Rp ${formatCurrency(price)}) kurang dari minimal metode ini.`);
+                            if (m.max && m.max > 0 && price > m.max) return alert('Nominal melebihi batas maksimal metode ini.');
+                        }
+
+                        // Remove selected class from others
+                        document.querySelectorAll('#payment-methods-grid .payment-card').forEach(pc => pc.classList.remove('selected'));
+                        btn.classList.add('selected');
+                        
+                        selectedDepositMethod = m;
+                        selectedMethodEl.textContent = m.type.toUpperCase() + ' - ' + m.name;
+                        
+                        // Penting: Update summary agar fee/total terhitung ulang
+                        updateOrderSummary(selectedProduct);
+
+                        // Handle Form Visibility (Email/OVO)
+                        if (emailWrapper) {
+                          emailWrapper.classList.remove('hidden');
+                          if (emailInput) emailInput.setAttribute('required','');
+                        }
+                        
+                        if (ovoPhoneWrapper) {
+                            const methodName = (m.name || '').toLowerCase();
+                            if (methodName.includes('ovo')) {
+                                ovoPhoneWrapper.classList.remove('hidden');
+                                if (ovoPhoneInput) ovoPhoneInput.setAttribute('required','');
+                            } else {
+                                ovoPhoneWrapper.classList.add('hidden');
+                                if (ovoPhoneInput) { ovoPhoneInput.removeAttribute('required'); ovoPhoneInput.value = ''; }
+                            }
+                        }
+
+                        // Auto collapse accordion
+                        try {
+                            if (paymentMethodsWrapperEl) {
+                                paymentMethodsWrapperEl.classList.add('collapsed');
+                                if (paymentToggleBtnEl) paymentToggleBtnEl.setAttribute('aria-expanded', 'false');
+                                if (paymentToggleIcon) paymentToggleIcon.classList.add('rotate');
+                            }
+                        } catch (e) {}
+                    });
+                } else {
+                    // Handler jika tombol disabled (UX Feedback)
+                    btn.addEventListener('click', () => {
+                        if (isSaldo && !isLoggedIn) {
+                             if(confirm('Metode ini khusus member. Login sekarang?')) window.location.href = '/login';
+                        } else if (isSaldo && isLoggedIn) {
+                             // Hitung kekurangan
+                             const diff = (selectedProduct ? getPrice(selectedProduct) : 0) - userBalance;
+                             alert(`Saldo tidak cukup.\nSaldo Anda: Rp ${formatCurrency(userBalance)}\nKekurangan: Rp ${formatCurrency(diff)}`);
+                        }
+                    });
+                    
+                    // Visual disabled tapi masih bisa diklik untuk alert
+                    if (isSaldo) {
+                        btn.style.opacity = '0.6';
+                        btn.style.cursor = 'pointer'; 
+                    } else {
+                        btn.setAttribute('disabled','disabled');
+                    }
+                }
+
+                paymentGrid.appendChild(btn);
+            }
+        }
+
+        // -------------------------
+        // Create deposit and proceed (kept, extended with email & ML merged id)
+        // -------------------------
+        // -------------------------
+        // Create deposit and proceed
+        // -------------------------
+        async function createDeposit() {
+            if (!selectedProduct) { alert('Pilih produk terlebih dahulu'); return; }
+            if (!selectedDepositMethod) { alert('Pilih metode pembayaran terlebih dahulu'); return; }
+
+            // ensure ML hidden user-id updated
+            updateHiddenUserId();
+            const rawInput = (userIdInput && userIdInput.value || '').trim();
+            const { userId } = parseUserInput(rawInput);
+            if (!rawInput) { alert('Isi ID/nomor/email tujuan terlebih dahulu'); if (userIdInput) userIdInput.focus(); return; }
+
+            const ovoPhone = ovoPhoneInput ? (ovoPhoneInput.value || '').trim() : '';
+            if (isOVO(selectedDepositMethod.method) && ovoPhoneInput) {
+                if (!ovoPhone) {
+                    alert('Masukkan nomor OVO terlebih dahulu.');
+                    ovoPhoneInput.focus();
+                    return;
+                }
+                const phoneRegex = /^(\+62|62|0)8[1-9][0-9]{6,9}$/;
+                if (!phoneRegex.test(ovoPhone)) {
+                    alert('Masukkan nomor OVO yang valid (contoh: 081234567890).');
+                    ovoPhoneInput.focus();
+                    return;
+                }
+            }
+
+            // email validation (only if email-wrapper visible)
+            let emailVal = '';
+            if (emailWrapper && !emailWrapper.classList.contains('hidden')) {
+                emailVal = (emailInput && emailInput.value || '').trim();
+                if (!emailVal) {
+                    alert('Masukkan email untuk konfirmasi pembayaran.');
+                    if (emailInput) emailInput.focus();
+                    return;
+                }
+            }
+
+            const code = getCode(selectedProduct) || getName(selectedProduct);
+            const price = getPrice(selectedProduct);
+            const target = rawInput;
+            const type = selectedDepositMethod.type || 'ewallet';
+            
+            // [REVISI] Pastikan Method terkirim sebagai 'SALDO' jika user pilih saldo
+            // Jangan sampai tertimpa jadi QRISFAST
+            let method = selectedDepositMethod.method || 'QRISFAST';
+            if (method === 'SALDO') {
+                method = 'SALDO'; 
+            } else if (method.toUpperCase() === 'QRIS INSTANT') {
+                method = 'QRISFAST';
+            }
+
+            if (selectedDepositMethod.min && price < selectedDepositMethod.min) return alert('Nominal lebih kecil dari minimal metode');
+            if (selectedDepositMethod.max && selectedDepositMethod.max > 0 && price > selectedDepositMethod.max) return alert('Nominal melebihi maksimal metode');
+
+            checkoutBtn.disabled = true;
+            checkoutBtn.textContent = 'Memproses Transaksi...';
+
+            try {
+                const requestData = {
+                    price: totalPrice,
+                    type,
+                    method,
+                    email: emailVal,
+                    phone: ovoPhone,
+                    product: {
+                        name: getName(selectedProduct),
+                        code: getCode(selectedProduct),
+                        price: price,
+                        target: target
+                    }
+                };
+                
+                if (isOVO(selectedDepositMethod.method) && ovoPhoneInput) {
+                    requestData.phone = ovoPhoneInput.value.trim();
+                }
+
+                const res = await fetch('/api/create-deposit', {
+                    method: 'POST',
+                    headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken()
+            },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const j = await res.json();
+                
+                // [REVISI] Menangani Error dari Server (Misal: Saldo Habis, Gagal Provider)
+                if (!res.ok || !j.ok) {
+                    throw new Error(j.message || 'Gagal membuat transaksi');
+                }
+                
+                // Sukses -> Redirect ke Payment Page
+                window.location.href = `/payment?trx_id=${encodeURIComponent(j.order_id || (j.deposit && j.deposit.id))}`;
+            
+            } catch (err) {
+                console.error(err);
+                // Tampilkan pesan error spesifik dari server (misal: "Saldo Anda dikembalikan")
+                alert(err.message || 'Terjadi kesalahan saat memproses transaksi.');
+            } finally {
+                checkoutBtn.disabled = false;
+                checkoutBtn.textContent = 'Lanjutkan Pembayaran';
+            }
+        }
+
+        // -------------------------
+        // Name check (kept)
+        // -------------------------
+        async function checkName() {
+            // ensure ML hidden user-id updated
+            updateHiddenUserId();
+
+            const rawInput = (userIdInput.value || '').trim();
+            const { userId } = parseUserInput(rawInput);
+            if (!userId) return alert('Masukkan ID/nomor/email tujuan terlebih dahulu.');
+
+            nameCheckResult.textContent = 'Memeriksa...';
+            try {
+                const res = await fetch('/api/account-check', { method:'POST', headers: {
+                'Content-Type': 'application/json'
+            }, body: JSON.stringify({ user_id: userId }) });
+                if (!res.ok) { nameCheckResult.textContent = 'Fitur check nama belum tersedia di server.'; nameCheckResult.classList.remove('text-green-600'); nameCheckResult.classList.add('text-yellow-500'); return; }
+                const j = await res.json();
+                if (j && j.ok && j.name) { nameCheckResult.textContent = `Nama akun: ${j.name}`; nameCheckResult.classList.remove('text-yellow-500'); nameCheckResult.classList.add('text-green-600'); } 
+                else { nameCheckResult.textContent = 'Tidak ditemukan nama akun.'; nameCheckResult.classList.remove('text-green-600'); nameCheckResult.classList.add('text-yellow-500'); }
+            } catch (err) {
+                nameCheckResult.textContent = 'Fitur check nama tidak tersedia (server).';
+                nameCheckResult.classList.remove('text-green-600'); nameCheckResult.classList.add('text-yellow-500');
+            }
+        }
+
+        // -------------------------
+        // Insert nominal buttons (minimal, non-invasive)
+        // - IDs: nominal-pulsa, nominal-data, nominal-reset
+        // - Inserts BEFORE #filters-container so it sits below H2 and above types
+        // - Default now: show 'Tampilkan Semua' active
+        // -------------------------
+        function ensureNominalButtons() {
+            try {
+                if (String(categorySlug || '').toLowerCase() !== 'pulsa-data') return;
+                if (!filtersContainer || !filtersContainer.parentNode) return;
+                if (document.getElementById('nominal-pulsa')) return; // already inserted
+
+                const wrap = document.createElement('div');
+                wrap.className = 'mb-3 flex items-center gap-2';
+                wrap.style.flexWrap = 'wrap';
+
+                const btnPulsa = document.createElement('button');
+                btnPulsa.id = 'nominal-pulsa';
+                btnPulsa.type = 'button';
+                btnPulsa.className = 'px-3 py-1.5 rounded-full border text-sm font-medium';
+                btnPulsa.textContent = 'Pulsa';
+
+                const btnData = document.createElement('button');
+                btnData.id = 'nominal-data';
+                btnData.type = 'button';
+                btnData.className = 'px-3 py-1.5 rounded-full border text-sm font-medium';
+                btnData.textContent = 'Data';
+
+                const btnReset = document.createElement('button');
+                btnReset.id = 'nominal-reset';
+                btnReset.type = 'button';
+                btnReset.className = 'px-2 py-1 rounded-full border text-xs font-medium';
+                btnReset.textContent = 'Tampilkan Semua';
+
+                wrap.appendChild(btnPulsa);
+                wrap.appendChild(btnData);
+                wrap.appendChild(btnReset);
+
+                filtersContainer.parentNode.insertBefore(wrap, filtersContainer);
+
+                btnPulsa.addEventListener('click', () => setNominalActive('pulsa'));
+                btnData.addEventListener('click', () => setNominalActive('data'));
+                btnReset.addEventListener('click', () => setNominalActive(null));
+
+                // default: show 'Tampilkan Semua' active on open
+                setNominalActive(null);
+            } catch (e) {
+                console.warn('ensureNominalButtons failed', e);
+            }
+        }
+
+        // -------------------------
+        // set nominal active (minimal & compatible)
+        // - ensures when switching nominal, selectedType becomes 'Semua' (if present)
+        // -------------------------
+        function setNominalActive(state) {
+            selectedNominal = (state === 'pulsa' || state === 'data') ? state : null;
+
+            const bPulsa = document.getElementById('nominal-pulsa');
+            const bData = document.getElementById('nominal-data');
+            const bReset = document.getElementById('nominal-reset');
+
+            const activeClass = 'bg-blue-600 text-white border-transparent';
+            const inactiveClass = 'bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 border border-gray-200 dark:border-slate-600';
+
+            if (bPulsa) bPulsa.className = (selectedNominal === 'pulsa') ? `px-3 py-1.5 rounded-full text-sm font-medium ${activeClass}` : `px-3 py-1.5 rounded-full text-sm font-medium ${inactiveClass}`;
+            if (bData) bData.className = (selectedNominal === 'data') ? `px-3 py-1.5 rounded-full text-sm font-medium ${activeClass}` : `px-3 py-1.5 rounded-full text-sm font-medium ${inactiveClass}`;
+            if (bReset) bReset.className = (selectedNominal === null) ? `px-2 py-1 rounded-full text-xs font-medium ${activeClass}` : `px-2 py-1 rounded-full text-xs font-medium ${inactiveClass}`;
+
+            // rebuild types for the newly selected nominal
+            buildTypes();
+
+            // When switching nominal, ensure selectedType becomes 'Semua' (if present),
+            // otherwise the first type — this ensures data->pulsa switch goes to 'Semua' for pulsa.
+            if (types && types.length) {
+                if (types.includes('Semua')) selectedType = 'Semua';
+                else selectedType = types[0];
+            } else {
+                selectedType = null;
+            }
+
+            renderTypeFilters();
+            renderProducts();
+
+            // if selectedProduct no longer fits filter, clear it
+            if (selectedProduct) {
+                const ok = (selectedNominal === 'pulsa' ? isPulsaProduct(selectedProduct) : (selectedNominal === 'data' ? isDataProduct(selectedProduct) : true));
+                if (!ok) {
+                    selectedProduct = null;
+                    updateOrderSummary(null);
+                }
+            }
+        }
+
+        // -------------------------
+        // Init: sanitize, build types, render
+        // -------------------------
+        (function init(){
+            products = sanitize(allProducts || []);
+            products.sort((a,b)=> getPrice(a) - getPrice(b));
+
+            // add nominal buttons only if categorySlug is pulsa-data (ensureNominalButtons sets default to 'Semua')
+            try { ensureNominalButtons(); } catch(e){ console.warn('ensureNominalButtons failed', e); }
+
+            buildTypes();
+            renderTypeFilters();
+            renderProducts();
+            loadDepositMethods('');
+
+            sortSelect && sortSelect.addEventListener('change', ()=> renderProducts());
+            nameCheckBtn && nameCheckBtn.addEventListener('click', checkName);
+            checkoutBtn && checkoutBtn.addEventListener('click', createDeposit);
+            
+            // theme & UI bits (kept)
+            const THEME_KEY = '<%= config.name %>_theme';
+            const themeToggle = document.getElementById('theme-toggle');
+            const mobileThemeToggle = document.getElementById('mobile-theme-toggle');
+            const themeIcon = document.getElementById('theme-icon');
+            const mobileThemeIcon = document.getElementById('mobile-theme-icon');
+            const themeDot = document.getElementById('theme-dot');
+
+            function applyThemeClass(theme){ if (theme === 'dark') document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark'); }
+            function getInitialTheme(){ const saved = localStorage.getItem(THEME_KEY); if (saved === 'dark' || saved === 'light') return saved; const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; return prefersDark ? 'dark' : 'light'; }
+
+            function setTheme(theme, persist = true){
+                applyThemeClass(theme);
+                const isDark = theme === 'dark';
+                if (themeToggle) { themeToggle.setAttribute('aria-checked', isDark ? 'true' : 'false'); themeIcon && (themeIcon.innerHTML = isDark ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>'); themeIcon && themeIcon.classList.add('rotate'); setTimeout(()=> themeIcon && themeIcon.classList.remove('rotate'), 300); if (themeDot) themeDot.style.transform = isDark ? 'translateX(22px)' : 'translateX(0)'; }
+                if (mobileThemeIcon) mobileThemeIcon.className = isDark ? 'fa-solid fa-moon text-slate-200' : 'fa-solid fa-sun text-yellow-400';
+                if (persist) localStorage.setItem(THEME_KEY, theme);
+            }
+
+            function toggleTheme(){ const cur = document.documentElement.classList.contains('dark') ? 'dark' : 'light'; setTheme(cur === 'dark' ? 'light' : 'dark', true); }
+
+            (function initTheme(){ const initial = getInitialTheme(); setTheme(initial, false); })();
+
+            if (themeToggle) themeToggle.addEventListener('click', toggleTheme);
+            if (themeToggle) themeToggle.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Spacebar' || e.key === 'Enter') { e.preventDefault(); toggleTheme(); } });
+            if (mobileThemeToggle) mobileThemeToggle.addEventListener('click', toggleTheme);
+
+            const menuToggle = document.getElementById('menu-toggle');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (menuToggle && mobileMenu) menuToggle.addEventListener('click', ()=> mobileMenu.classList.toggle('hidden'));
+
+            const scrollTopBtnLocal = document.getElementById('scroll-top');
+            if (scrollTopBtnLocal) {
+                window.addEventListener('scroll', ()=> { if (window.scrollY > 300) scrollTopBtnLocal.style.display = 'block'; else scrollTopBtnLocal.style.display = 'none'; });
+            }
+
+            const ye = document.getElementById('currentYear'); if (ye) ye.textContent = new Date().getFullYear();
+
+            // payment methods toggle behavior (kept)
+            if (paymentToggleBtnEl) paymentToggleBtnEl.setAttribute('aria-expanded', 'true');
+            if (paymentToggleIcon) paymentToggleIcon.classList.remove('rotate');
+
+            if (paymentToggleBtnEl && paymentMethodsWrapperEl) {
+                paymentToggleBtnEl.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const isCollapsed = paymentMethodsWrapperEl.classList.toggle('collapsed');
+                    if (isCollapsed) {
+                        paymentToggleBtnEl.setAttribute('aria-expanded', 'false');
+                        if (paymentToggleIcon) paymentToggleIcon.classList.add('rotate');
+                    } else {
+                        paymentToggleBtnEl.setAttribute('aria-expanded', 'true');
+                        if (paymentToggleIcon) paymentToggleIcon.classList.remove('rotate');
+                        const firstCard = paymentMethodsWrapperEl.querySelector('.payment-card:not(.disabled)');
+                        if (firstCard) firstCard.focus({ preventScroll: true });
+                    }
+                });
+
+                paymentToggleBtnEl.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+                        e.preventDefault();
+                        paymentToggleBtnEl.click();
+                    }
+                });
+            }
+
+            // ensure email hidden on load
+            try {
+              if (emailWrapper) emailWrapper.classList.add('hidden');
+              if (emailInput) emailInput.removeAttribute('required');
+            } catch(e){}
+
+            // initialize ML merge if provider is mobile-legends and inputs exist -> ensure hidden user-id is in sync
+            try {
+              // if ML inputs are present but userIdInput may be hidden, sync them now
+              if (providerSlug === 'mobile-legends-bb') {
+                // prefer ML visible inputs if present
+                updateHiddenUserId();
+              } else {
+                // if not ML, still ensure selectedTarget shows current userId value
+                if (selectedTargetEl && userIdInput) selectedTargetEl.textContent = userIdInput.value || '-';
+              }
+            } catch(e){}
+
+            // setup bottom bar (observer & handlers)
+            try { setupBottomBar(); } catch(e){ console.warn('setupBottomBar failed', e); }
+        })();
+    </script>
+
+</body>
+</html>

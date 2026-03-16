@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="id" class="antialiased">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><%= pageTitle %> - <%= config.name %></title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class' };</script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root { --card-bg: #ffffff; --card-shadow: 0 10px 30px rgba(2,6,23,0.06); }
+        html, body { font-family: 'Montserrat', system-ui, -apple-system, "Segoe UI", Roboto, Arial; }
+        body { background: #f8fafc; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        .dark body { background: #0f172a; }
+        .dark :root { --card-bg: #0f172a; --card-shadow: 0 10px 30px rgba(0,0,0,0.55); }
+
+        /* Card baseline */
+        .card {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            box-shadow: 0 10px 30px rgba(2,6,23,0.06);
+            transition: transform .18s ease, box-shadow .18s ease;
+            border: 1px solid rgba(0,0,0,0.03);
+            /* Allow children to shrink inside flex/grid */
+            min-width: 0;
+            box-sizing: border-box;
+        }
+        .dark .card {
+            background: #0b1220;
+            border-color: rgba(255,255,255,0.04);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+        }
+
+        /* Input look */
+        .modern-input {
+            padding: 0.75rem 0.95rem;
+            border-radius: 0.75rem;
+            border: 1px solid #e6edf3;
+            background: #fff;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .modern-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(59,130,246,0.12);
+            border-color: #3b82f6;
+        }
+        .dark .modern-input {
+            background: #1e293b;
+            color: #e6eef8;
+            border-color: #263246;
+        }
+
+        /* tiny helpers */
+        .icon-badge-header {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 0.75rem;
+            background: rgba(59,130,246,0.08);
+            color: #2563eb;
+            flex-shrink: 0;
+        }
+        .dark .icon-badge-header {
+            background: rgba(96,165,250,0.08);
+            color: #60a5fa;
+        }
+
+        /* balance gradient card */
+        .balance-box-gradient {
+            background: linear-gradient(135deg, #0f172a 0%, #0b3b82 100%);
+            border-radius: 0.9rem;
+            color: white;
+            padding: 1.25rem;
+        }
+        .dark .balance-box-gradient {
+            background: linear-gradient(135deg,#0b1220 0%, #12315b 100%);
+        }
+
+        /* ensure long words/emails wrap */
+        .breakwrap { overflow-wrap: anywhere; word-break: break-word; }
+
+        /* small animation for theme icon */
+        .icon-rotate { transition: transform .35s ease; transform-origin: center; }
+
+        /* responsive container tweaks */
+        @media (min-width: 1024px) {
+            main.container { max-width: 1100px; }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-slate-100 min-h-screen">
+
+    <header class="bg-white dark:bg-slate-800 sticky top-0 z-40 shadow-sm transition-colors duration-300">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <a href="/" class="p-2 rounded-lg text-sm font-semibold text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-left text-base"></i>
+                    <span class="hidden sm:inline">Kembali</span>
+                </a>
+                <div class="text-lg font-bold text-gray-900 dark:text-slate-100 hidden sm:block">Akun Saya</div>
+            </div>
+
+            <div class="text-lg font-bold text-gray-900 dark:text-slate-100 sm:hidden">Akun Saya</div>
+
+            <div class="flex items-center gap-3">
+                <button id="theme-toggle" aria-label="Ubah mode: gelap / terang" role="switch" aria-checked="false"
+                    class="ml-1 p-1 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 shadow-sm flex items-center gap-2">
+                    <span class="sr-only">Toggle theme</span>
+                    <span id="theme-icon" class="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-400 to-orange-400 text-white shadow">
+                        <i class="fa-solid fa-sun"></i>
+                    </span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-6 max-w-6xl pt-8">
+        <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-6 dark:text-white border-b border-gray-200 dark:border-slate-700 pb-4">
+            Pengaturan Akun <span class="text-blue-600 dark:text-blue-400">/ Profil</span>
+        </h1>
+
+        <!-- loading state -->
+        <div id="loading-state" class="text-center py-10 dark:text-gray-400">
+            <i class="fa-solid fa-spinner fa-spin text-3xl text-blue-500 mb-3"></i>
+            <p>Memuat data profil...</p>
+        </div>
+
+        <!-- main grid; awalnya hidden -->
+        <div id="main-content" class="grid grid-cols-1 lg:grid-cols-3 gap-6 hidden">
+
+            <!-- left column -->
+            <div class="lg:col-span-1 space-y-5">
+
+                <!-- balance card -->
+                <div class="card balance-box-gradient">
+                    <div class="flex items-center justify-between mb-3 min-w-0">
+                        <h2 class="text-sm font-semibold opacity-90">Saldo Akun Anda</h2>
+                        <i class="fa-solid fa-wallet text-xl opacity-90"></i>
+                    </div>
+                    <p class="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight breakwrap truncate" id="user-balance" style="max-width:100%;">
+                        Rp 0
+                    </p>
+                    <p class="text-xs mt-3 opacity-80">Terakhir diperbarui: <%= new Date().toLocaleDateString('id-ID') %></p>
+                </div>
+
+                <!-- detail pengguna -->
+                <div class="card">
+                    <div class="flex items-start gap-3 mb-4">
+                        <div class="icon-badge-header"><i class="fa-solid fa-info text-lg"></i></div>
+                        <div class="min-w-0">
+                            <h2 class="text-lg font-bold dark:text-white truncate">Detail Pengguna</h2>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Informasi akun dan status</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <!-- each row responsive: label above on mobile, side-by-side on sm+ -->
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b border-gray-100 pb-3 dark:border-slate-700 text-sm">
+                            <span class="text-gray-500 dark:text-gray-400 flex items-center gap-2"><i class="fa-solid fa-id-badge"></i> Nama Lengkap:</span>
+                            <span class="font-semibold text-gray-800 dark:text-white mt-1 sm:mt-0 min-w-0 breakwrap" id="user-name">Memuat...</span>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b border-gray-100 pb-3 dark:border-slate-700 text-sm">
+                            <span class="text-gray-500 dark:text-gray-400 flex items-center gap-2"><i class="fa-solid fa-at"></i> Email:</span>
+                            <span class="font-semibold text-gray-800 dark:text-white mt-1 sm:mt-0 min-w-0 breakwrap" id="user-email">Memuat...</span>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b border-gray-100 pb-3 dark:border-slate-700 text-sm">
+                            <span class="text-gray-500 dark:text-gray-400 flex items-center gap-2"><i class="fa-solid fa-user-tag"></i> Role Akun:</span>
+                            <span class="font-bold text-green-600 dark:text-green-400 capitalize mt-1 sm:mt-0 min-w-0" id="user-role">Memuat...</span>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b border-gray-100 pb-3 dark:border-slate-700 text-sm">
+                            <span class="text-gray-500 dark:text-gray-400 flex items-center gap-2"><i class="fa-solid fa-gem"></i> Type Akun:</span>
+                            <span class="font-bold text-indigo-600 dark:text-indigo-400 capitalize mt-1 sm:mt-0 min-w-0" id="user-type">Memuat...</span>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center text-sm">
+                            <span class="text-gray-500 dark:text-gray-400 flex items-center gap-2"><i class="fa-solid fa-calendar-check"></i> Terdaftar Sejak:</span>
+                            <span class="font-medium text-gray-800 dark:text-white mt-1 sm:mt-0 min-w-0" id="user-created-at">Memuat...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- right column -->
+            <div class="lg:col-span-2 card">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="icon-badge-header"><i class="fa-solid fa-shield-halved text-lg"></i></div>
+                    <h2 class="text-lg font-bold dark:text-white">Keamanan & Kata Sandi</h2>
+                </div>
+
+                <form id="change-password-form" class="space-y-5">
+                    <div>
+                        <label for="old_password" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Kata Sandi Lama</label>
+                        <input type="password" id="old_password" name="old_password" required
+                               class="modern-input" placeholder="Masukkan kata sandi lama Anda">
+                        <div class="text-right mt-2">
+                            <a href="/forgot-password" class="text-xs text-red-500 hover:text-red-700 font-medium dark:text-red-400 dark:hover:text-red-300 transition">
+                                Lupa Kata Sandi Lama?
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="new_password" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Kata Sandi Baru</label>
+                            <input type="password" id="new_password" name="new_password" required
+                                   class="modern-input" placeholder="Kata sandi minimal 6 karakter">
+                        </div>
+                        <div>
+                            <label for="confirm_password" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Konfirmasi Kata Sandi Baru</label>
+                            <input type="password" id="confirm_password" name="confirm_password" required
+                                   class="modern-input" placeholder="Ulangi kata sandi baru">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btn-change-password"
+                            class="w-full btn-primary-gradient text-black dark:text-white p-3 rounded-lg font-bold text-base shadow-lg transition duration-150 ease-in-out">
+                        <i class="fa-solid fa-arrow-right-to-bracket mr-2"></i> Konfirmasi Perubahan
+                    </button>
+                </form>
+
+                <p id="message" class="mt-4 text-center hidden font-medium"></p>
+
+                <div class="mt-6 pt-5 border-t border-gray-100 dark:border-slate-700">
+                    <h3 class="font-semibold text-sm text-gray-500 dark:text-gray-400 mb-3">Keamanan Akun</h3>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-green-500"></i> Verifikasi 2FA Aktif</span>
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-desktop text-blue-500"></i> Sesi Aktif: 1</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // --- Theme Toggle Logic ---
+        const THEME_KEY = '<%= config.name %>_theme';
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+
+        function applyThemeClass(theme) {
+            if (theme === 'dark') document.documentElement.classList.add('dark');
+            else document.documentElement.classList.remove('dark');
+        }
+
+        function getInitialTheme() {
+            const saved = localStorage.getItem(THEME_KEY);
+            if (saved === 'dark' || saved === 'light') return saved;
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            return prefersDark ? 'dark' : 'light';
+        }
+
+        function updateIcon(isDark) {
+            if (themeIcon) {
+                themeIcon.innerHTML = isDark ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
+                themeIcon.classList.add('icon-rotate');
+                setTimeout(() => themeIcon.classList.remove('icon-rotate'), 400);
+            }
+        }
+
+        function setTheme(theme, persist = true) {
+            applyThemeClass(theme);
+            const isDark = theme === 'dark';
+            if (themeToggle) themeToggle.setAttribute('aria-checked', isDark ? 'true' : 'false');
+            updateIcon(isDark);
+            if (persist) localStorage.setItem(THEME_KEY, theme);
+        }
+
+        const initialTheme = getInitialTheme();
+        setTheme(initialTheme, false);
+
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                setTheme(newTheme);
+            });
+        }
+
+        // --- Helpers ---
+        const formatRupiah = (number) => {
+            if (number == null) return 'Rp 0';
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
+        };
+        const formatDate = (isoString) => {
+            if (!isoString) return '-';
+            const date = new Date(isoString);
+            return date.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+        };
+
+        // --- Load Profile Data ---
+        async function loadProfileData() {
+            const loadingState = document.getElementById('loading-state');
+            const mainContent = document.getElementById('main-content');
+
+            try {
+                const response = await fetch('/api/user/profile-data');
+                const data = await response.json();
+
+                if (data && data.ok) {
+                    document.getElementById('user-balance').textContent = formatRupiah(data.balance);
+                    document.getElementById('user-name').textContent = data.name || '-';
+                    document.getElementById('user-email').textContent = data.email || '-';
+                    document.getElementById('user-role').textContent = (data.role || '-');
+                    document.getElementById('user-type').textContent = (data.type || '-');
+                    document.getElementById('user-created-at').textContent = formatDate(data.created_at);
+
+                    // show main content
+                    loadingState.classList.add('hidden');
+                    mainContent.classList.remove('hidden');
+                } else {
+                    loadingState.innerHTML = `<i class="fa-solid fa-circle-exclamation text-3xl text-red-500 mb-3"></i><p>${(data && data.message) ? data.message : 'Gagal memuat data profil. Silakan refresh.'}</p>`;
+                }
+            } catch (error) {
+                loadingState.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-3xl text-red-500 mb-3"></i><p>Terjadi kesalahan jaringan: ${error.message}</p>`;
+            }
+        }
+
+        window.addEventListener('load', loadProfileData);
+
+        // --- Change password form ---
+        const form = document.getElementById('change-password-form');
+        const btn = document.getElementById('btn-change-password');
+        const msgEl = document.getElementById('message');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const old_password = document.getElementById('old_password').value.trim();
+            const new_password = document.getElementById('new_password').value.trim();
+            const confirm_password = document.getElementById('confirm_password').value.trim();
+
+            msgEl.classList.add('hidden');
+            msgEl.textContent = '';
+
+            if (new_password !== confirm_password) {
+                msgEl.textContent = 'Kata sandi baru dan konfirmasi tidak cocok.';
+                msgEl.className = 'mt-4 text-center text-red-500 dark:text-red-400 font-medium';
+                msgEl.classList.remove('hidden');
+                return;
+            }
+
+            if (new_password.length < 6) {
+                msgEl.textContent = 'Kata sandi baru minimal 6 karakter.';
+                msgEl.className = 'mt-4 text-center text-red-500 dark:text-red-400 font-medium';
+                msgEl.classList.remove('hidden');
+                return;
+            }
+
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.textContent = 'Memproses...';
+
+            try {
+                const res = await fetch('/api/user/change-password', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ old_password, new_password })
+                });
+                const json = await res.json();
+
+                if (json && json.ok) {
+                    msgEl.textContent = 'Kata sandi berhasil diubah! Anda akan dialihkan.';
+                    msgEl.className = 'mt-4 text-center text-green-600 dark:text-green-400 font-medium';
+                    msgEl.classList.remove('hidden');
+                    setTimeout(() => window.location.href = '/', 1500);
+                } else {
+                    msgEl.textContent = (json && json.message) ? json.message : 'Gagal mengubah kata sandi.';
+                    msgEl.className = 'mt-4 text-center text-red-500 dark:text-red-400 font-medium';
+                    msgEl.classList.remove('hidden');
+                }
+            } catch (error) {
+                msgEl.textContent = 'Terjadi kesalahan jaringan/server.';
+                msgEl.className = 'mt-4 text-center text-red-500 dark:text-red-400 font-medium';
+                msgEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        });
+    </script>
+</body>
+</html>

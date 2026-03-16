@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="id" class="antialiased">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Panduan — <%= config.name %></title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' };</script>
+
+  <!-- Fonts & Icons (sama seperti file header/footer) -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="icon" type="image/png" href="/img/favicon.png" />
+<link rel="apple-touch-icon" href="/img/favicon.png" />
+
+  <style>
+    html,body { font-family: 'Montserrat', system-ui, -apple-system, "Helvetica Neue", Arial; }
+    .glass {
+      background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.5));
+      backdrop-filter: blur(6px);
+    }
+    .dark .glass {
+      background: linear-gradient(180deg, rgba(15,23,42,0.6), rgba(15,23,42,0.5));
+    }
+    .step-dot { width: 46px; height:46px; min-width:46px; border-radius:12px; }
+    .focus-ring:focus { outline: none; box-shadow: 0 0 0 4px rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.9); }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-slate-900 dark:text-slate-100">
+
+  <!-- ========== Header (copy dari kode awal) ========== -->
+  <header class="bg-white dark:bg-slate-800 sticky top-0 z-40 shadow-sm transition-colors duration-300">
+    <div class="container mx-auto px-4 md:px-6 py-3 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-pink-500 flex items-center justify-center shadow-lg">
+          <img src="/img/favlogo.jpg" alt="Logo" class="rounded-lg w-full h-full object-contain" />
+        </div>
+        <div>
+          <div class="text-lg font-bold text-gray-900 dark:text-slate-100"><%= config.name %> <span class="hidden text-blue-600 font-semibold">.</span></div>
+          <div class="text-xs text-gray-500 dark:text-slate-300 -mt-1">Top Up — Cepat & Aman</div>
+        </div>
+      </a>
+
+      <div class="flex items-center gap-3">
+        <button id="mobile-theme-toggle" class="md:hidden p-2 rounded-full focus:outline-none hover:bg-gray-100 dark:hover:bg-slate-700" aria-label="Ubah tema" data-mobile-theme-toggle>
+          <i id="mobile-theme-icon" class="fa-solid fa-moon text-gray-700 dark:text-slate-200"></i>
+        </button>
+
+        <nav class="hidden md:flex items-center gap-6">
+          <a href="/" class="text-sm font-medium text-gray-700 dark:text-slate-300 nav-link">Beranda</a>
+          <a href="/status" class="text-sm font-medium text-gray-700 dark:text-slate-300 nav-link">Status Pesanan</a>
+          <a href="/faq" class="text-sm font-medium text-gray-700 dark:text-slate-300 nav-link">FAQ</a>
+          <a href="/support" class="text-sm font-medium text-gray-700 dark:text-slate-300 nav-link">Bantuan</a>
+          <a href="/syarat-dan-ketentuan" class="text-sm font-medium text-gray-700 dark:text-slate-300 nav-link">Kebijakan</a>
+        </nav>
+
+        <button id="theme-toggle" aria-label="Ubah mode: gelap / terang" role="switch" aria-checked="false"
+          class="hidden md:inline-flex ml-1 p-1 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 shadow-sm items-center gap-2">
+          <span class="sr-only">Toggle theme</span>
+          <span id="theme-icon" class="flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-tr from-yellow-400 to-orange-400 text-white shadow icon-rotate">
+            <i class="fa-solid fa-sun"></i>
+          </span>
+        </button>
+
+        <button id="menu-toggle" class="p-2 rounded-md md:hidden focus:outline-none" aria-label="Buka menu">
+          <i class="fas fa-bars text-xl text-gray-700 dark:text-slate-200"></i>
+        </button>
+      </div>
+    </div>
+
+    <div id="mobile-menu" class="md:hidden hidden border-t border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800">
+      <div class="px-4 py-4 space-y-2">
+        <a href="/" class="block py-2 px-2 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">Beranda</a>
+        <a href="/status" class="block py-2 px-2 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">Status Pesanan</a>
+        <a href="/faq" class="block py-2 px-2 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">FAQ</a>
+        <a href="/support" class="block py-2 px-2 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">Bantuan</a>
+        <a href="/syarat-dan-ketentuan" class="block py-2 px-2 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">Kebijakan</a>
+      </div>
+    </div>
+  </header>
+  <!-- ========== /Header ========== -->
+
+  <!-- Hero -->
+  <main class="min-h-screen py-12 md:py-16">
+    <div class="container mx-auto px-4 md:px-6">
+      <div class="max-w-4xl mx-auto text-center mb-10">
+        <h1 class="text-3xl md:text-4xl font-bold mb-3">Panduan Penggunaan <span class="text-indigo-600"><%= config.name %></span></h1>
+        <p class="text-gray-600 dark:text-slate-300 max-w-2xl mx-auto">Langkah demi langkah agar transaksi top-up berjalan lancar. Ikuti panduan ini untuk hasil terbaik.</p>
+      </div>
+
+      <div class="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left column: step list -->
+        <section class="lg:col-span-2 space-y-6">
+          <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm">
+            <h2 class="text-lg font-semibold mb-4">Langkah Cepat (3 menit)</h2>
+
+            <!-- Steps: responsive cards -->
+            <div class="space-y-4">
+              <div class="flex gap-4 items-start">
+                <div class="step-dot flex items-center justify-center bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600">
+                  <i class="fa-solid fa-list-check"></i>
+                </div>
+                <div class="min-w-0">
+                  <h3 class="font-semibold text-gray-900 dark:text-white">1. Pilih Provider & Produk</h3>
+                  <p class="text-sm text-gray-600 dark:text-slate-300">Pilih game atau layanan (pulsa, paket data, voucher). Cari provider sesuai kebutuhan.</p>
+                </div>
+              </div>
+
+              <div class="flex gap-4 items-start">
+                <div class="step-dot flex items-center justify-center bg-green-50 dark:bg-green-900/30 text-green-600">
+                  <i class="fa-solid fa-user-check"></i>
+                </div>
+                <div class="min-w-0">
+                  <h3 class="font-semibold text-gray-900 dark:text-white">2. Masukkan ID Game / Nomor</h3>
+                  <p class="text-sm text-gray-600 dark:text-slate-300">Pastikan ID/nomor tujuan benar agar produk masuk ke akun yang tepat.</p>
+                </div>
+              </div>
+
+              <div class="flex gap-4 items-start">
+                <div class="step-dot flex items-center justify-center bg-amber-50 dark:bg-amber-900/30 text-amber-600">
+                  <i class="fa-solid fa-credit-card"></i>
+                </div>
+                <div class="min-w-0">
+                  <h3 class="font-semibold text-gray-900 dark:text-white">3. Bayar & Konfirmasi</h3>
+                  <p class="text-sm text-gray-600 dark:text-slate-300">Pilih metode pembayaran yang tersedia. Setelah konfirmasi, sistem akan memproses pesanan otomatis.</p>
+                </div>
+              </div>
+
+              <div class="flex gap-4 items-start">
+                <div class="step-dot flex items-center justify-center bg-pink-50 dark:bg-pink-900/30 text-pink-600">
+                  <i class="fa-solid fa-gift"></i>
+                </div>
+                <div class="min-w-0">
+                  <h3 class="font-semibold text-gray-900 dark:text-white">4. Terima Produk / SN</h3>
+                  <p class="text-sm text-gray-600 dark:text-slate-300">Setelah pembayaran terverifikasi, SN atau produk akan terkirim otomatis ke halaman status atau via email/WA.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detailed step (accordion-like) -->
+          <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm">
+            <h2 class="text-lg font-semibold mb-3">Panduan Lengkap</h2>
+
+            <div class="space-y-4">
+              <details class="group rounded-lg p-4 border hover:shadow-md">
+                <summary class="flex items-center justify-between cursor-pointer">
+                  <span class="flex items-center gap-3">
+                    <span class="inline-flex w-9 h-9 items-center justify-center rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600"><i class="fa-solid fa-clipboard-list"></i></span>
+                    <span class="font-medium">Memilih Produk & Provider</span>
+                  </span>
+                  <i class="fa-solid fa-chevron-down text-sm group-open:rotate-180 transition-transform"></i>
+                </summary>
+                <div class="mt-3 text-sm text-gray-600 dark:text-slate-300 space-y-2">
+                  <p>Gunakan fitur pencarian atau filter provider untuk menemukan produk. Periksa rating provider bila tersedia.</p>
+                  <ul class="list-disc pl-5">
+                    <li>Cek deskripsi produk untuk limit & waktu proses.</li>
+                    <li>Perhatikan syarat khusus (contoh: beberapa produk memerlukan format khusus pada ID).</li>
+                  </ul>
+                </div>
+              </details>
+
+              <details class="group rounded-lg p-4 border hover:shadow-md">
+                <summary class="flex items-center justify-between cursor-pointer">
+                  <span class="flex items-center gap-3">
+                    <span class="inline-flex w-9 h-9 items-center justify-center rounded-md bg-green-50 dark:bg-green-900/30 text-green-600"><i class="fa-solid fa-keyboard"></i></span>
+                    <span class="font-medium">Memasukkan ID Game / Nomor</span>
+                  </span>
+                  <i class="fa-solid fa-chevron-down text-sm group-open:rotate-180 transition-transform"></i>
+                </summary>
+                <div class="mt-3 text-sm text-gray-600 dark:text-slate-300">
+                  <p>Masukkan ID/nomor sesuai format. Contoh format: <code class="bg-gray-100 dark:bg-slate-700 px-2 py-1 rounded">1234567890</code>. Kesalahan input membuat transaksi gagal.</p>
+                </div>
+              </details>
+
+              <details class="group rounded-lg p-4 border hover:shadow-md">
+                <summary class="flex items-center justify-between cursor-pointer">
+                  <span class="flex items-center gap-3">
+                    <span class="inline-flex w-9 h-9 items-center justify-center rounded-md bg-amber-50 dark:bg-amber-900/30 text-amber-600"><i class="fa-solid fa-credit-card"></i></span>
+                    <span class="font-medium">Pembayaran & Metode</span>
+                  </span>
+                  <i class="fa-solid fa-chevron-down text-sm group-open:rotate-180 transition-transform"></i>
+                </summary>
+                <div class="mt-3 text-sm text-gray-600 dark:text-slate-300">
+                  <p>Kami menyediakan berbagai metode — transfer bank, e-wallet, dan lebih. Pilih yang nyaman lalu ikuti instruksi pembayaran.</p>
+                </div>
+              </details>
+
+              <details class="group rounded-lg p-4 border hover:shadow-md">
+                <summary class="flex items-center justify-between cursor-pointer">
+                  <span class="flex items-center gap-3">
+                    <span class="inline-flex w-9 h-9 items-center justify-center rounded-md bg-pink-50 dark:bg-pink-900/30 text-pink-600"><i class="fa-solid fa-truck-fast"></i></span>
+                    <span class="font-medium">Status & Penanganan Masalah</span>
+                  </span>
+                  <i class="fa-solid fa-chevron-down text-sm group-open:rotate-180 transition-transform"></i>
+                </summary>
+                <div class="mt-3 text-sm text-gray-600 dark:text-slate-300">
+                  <p>Jika transaksi gagal atau tertunda, cek halaman <a href="/status" class="text-indigo-600">Status Pesanan</a> dan panduan refund. Hubungi support bila perlu.</p>
+                </div>
+              </details>
+            </div>
+          </div>
+
+          <!-- FAQ mini -->
+          <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm">
+            <h2 class="text-lg font-semibold mb-3">Pertanyaan Singkat</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="p-3 rounded-lg border">
+                <p class="text-sm font-medium text-gray-900 dark:text-white">Apakah bisa refund?</p>
+                <p class="text-sm text-gray-600 dark:text-slate-300 mt-1">Ya, refund mengikuti kebijakan. Lihat detail di halaman refund & kebijakan.</p>
+              </div>
+              <div class="p-3 rounded-lg border">
+                <p class="text-sm font-medium text-gray-900 dark:text-white">Dimana SN dikirim?</p>
+                <p class="text-sm text-gray-600 dark:text-slate-300 mt-1">SN dikirim ke halaman status, email, atau WA tergantung metode order.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right column: tips & CTA -->
+        <aside class="space-y-6">
+          <div class="p-6 rounded-2xl glass shadow-sm">
+            <h4 class="font-semibold mb-2">Tips Aman & Cepat</h4>
+            <ul class="text-sm text-gray-600 dark:text-slate-300 space-y-2">
+              <li class="flex items-start gap-2"><i class="fa-solid fa-check text-indigo-600 mt-1"></i>Periksa kembali ID sebelum checkout.</li>
+              <li class="flex items-start gap-2"><i class="fa-solid fa-check text-indigo-600 mt-1"></i>Gunakan metode pembayaran yang terverifikasi.</li>
+              <li class="flex items-start gap-2"><i class="fa-solid fa-check text-indigo-600 mt-1"></i>Simpan bukti pembayaran sampai pesanan selesai.</li>
+            </ul>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-white dark:bg-slate-800 shadow-sm text-center">
+            <h4 class="font-semibold mb-3">Butuh Bantuan?</h4>
+            <p class="text-sm text-gray-600 dark:text-slate-300 mb-4">Tim dukungan siap membantu 24/7 untuk masalah teknis & pembayaran.</p>
+            <a href="https://wa.me/<%= config.contact.whatsapp %>" target="_blank" class="inline-flex items-center gap-2 px-4 py-3 rounded-lg bg-green-500 text-white font-semibold shadow hover:shadow-lg">
+              <i class="fab fa-whatsapp"></i> Chat WhatsApp
+            </a>
+          </div>
+
+          <div class="p-6 rounded-2xl border dark:border-slate-700">
+            <h5 class="font-semibold mb-2">Kontak Lengkap</h5>
+            <p class="text-sm text-gray-600 dark:text-slate-300">Email: <a href="mailto:<%= config.contact.email %>" class="text-indigo-600"><%= config.contact.email %></a></p>
+            <p class="text-sm text-gray-600 dark:text-slate-300 mt-1">Status Pesanan: <a href="/status" class="text-indigo-600">Cek di sini</a></p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <!-- ========== Footer (copy dari kode awal) ========== -->
+  <footer class="glass shadow-sm bg-white/70 text-gray-800 dark:bg-slate-900 dark:text-slate-200 py-10">
+    <div class="container mx-auto px-4 md:px-6">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+        <div class="md:col-span-5 lg:col-span-6">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-pink-500 flex items-center justify-center shadow-lg">
+   		   <img src="/img/favlogo.jpg" alt="Logo" class="rounded-lg w-full h-full object-contain" />
+  		  </div>
+            <div>
+              <p class="font-semibold text-lg text-gray-900 dark:text-white"><%= config.name %></p>
+              <p class="text-xs text-gray-500 dark:text-slate-400 -mt-1">Solusi Top-Up Terpercaya</p>
+            </div>
+          </div>
+
+          <div class="mt-3 text-sm text-gray-600 dark:text-slate-300 leading-relaxed whitespace-normal break-words max-w-[65ch]" style="hyphens:auto;">
+            <p>
+              <%= config.name %> adalah platform top-up terpercaya untuk
+              <span class="font-medium text-gray-800 dark:text-slate-100">game online, pulsa & data, voucher digital, serta akun premium</span>.
+              Kami menghadirkan layanan cepat, aman, dan praktis dengan dukungan pelanggan 24/7.
+            </p>
+            
+            <div class="<%= config.legality_information ? '' : 'hidden' %>">
+
+  <p class="mt-2">
+    Proyek ini dikembangkan oleh
+    <span class="font-medium text-gray-800 dark:text-slate-100">PT Inovixa Technologies Solution</span> sebagai wujud inovasi digital
+    untuk memudahkan transaksi online masyarakat Indonesia.
+    Kunjungi kami di
+    <a href="https://inovixa.web.id" target="_blank" rel="noopener" class="underline text-blue-600 dark:text-blue-400 hover:opacity-90">inovixa.web.id</a>.
+  </p>
+
+  <ul class="mt-3 space-y-1 text-xs text-gray-500 dark:text-slate-400">
+    <li>
+      <i class="fa-solid fa-file-contract mr-1 text-gray-400"></i>
+      <strong>Nomor Administrasi Hukum Umum (AHU):</strong>
+      AHU-038360.AH.01.30.Tahun 2025
+    </li>
+    <li>
+      <i class="fa-solid fa-file-signature mr-1 text-gray-400"></i>
+      <strong>Nomor Induk Berusaha (NIB):</strong>
+      2809250003254
+    </li>
+    <li>
+      <i class="fa-solid fa-id-card mr-1 text-gray-400"></i>
+      <strong>Nomor Pokok Wajib Pajak (NPWP):</strong>
+      10.000.000.0-516.7828
+    </li>
+  </ul>
+
+</div>
+            <p class="hidden mt-2 text-xs">
+              <a href="https://inovixa.web.id/legality" target="_blank" rel="noopener" 
+                 class="underline text-blue-600 dark:text-blue-400 hover:opacity-90">
+                Lihat detail legalitas perusahaan →
+              </a>
+            </p>
+          </div>
+        </div>
+
+        <!-- Link Cepat -->
+        <div class="md:col-span-2">
+          <h4 class="font-semibold mb-3 text-gray-900 dark:text-white">Link Cepat</h4>
+          <ul class="text-sm space-y-2 text-gray-600 dark:text-slate-300">
+            <li><a href="/status" class="hover:text-blue-600 dark:hover:text-blue-400">Status Pesanan</a></li>
+            <li><a href="/syarat-dan-ketentuan" class="hover:text-blue-600 dark:hover:text-blue-400">Syarat dan Ketentuan</a></li>
+            <li><a href="/faq" class="hover:text-blue-600 dark:hover:text-blue-400">FAQ</a></li>
+          </ul>
+        </div>
+
+        <!-- Bantuan -->
+        <div class="md:col-span-2">
+          <h4 class="font-semibold mb-3 text-gray-900 dark:text-white">Bantuan</h4>
+          <ul class="text-sm space-y-2 text-gray-600 dark:text-slate-300">
+            <li><a href="/support" class="hover:text-blue-600 dark:hover:text-blue-400">Hubungi Kami</a></li>
+            <li><a href="/panduan" class="hover:text-blue-600 dark:hover:text-blue-400">Panduan</a></li>
+            <li><a href="/refund-dan-kebijakan" class="hover:text-blue-600 dark:hover:text-blue-400">Refund & Kebijakan</a></li>
+          </ul>
+        </div>
+
+        <!-- Ikuti Kami + Pembayaran -->
+        <div class="md:col-span-3 lg:col-span-2">
+          <h4 class="font-semibold mb-3 text-gray-900 dark:text-white">Ikuti Kami</h4>
+          <div class="flex flex-wrap items-center gap-3 text-gray-600 dark:text-slate-300">
+            <%- config.socmed %>
+          </div>
+
+          <div class="mt-6">
+            <h5 class="text-sm font-semibold mb-2 text-gray-900 dark:text-white">Metode Pembayaran</h5>
+            <div class="flex gap-2 items-center">
+              <img src="/img/payment.png" alt="Payment" class="mx-auto rounded max-w-full h-auto" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="border-t border-gray-200 dark:border-slate-700 mt-8 pt-4 text-center text-xs text-gray-500 dark:text-slate-400">
+        &copy; <%= config.footer %>
+      </div>
+    </div>
+  </footer>
+  <!-- ========== /Footer ========== -->
+
+  <!-- Scripts: theme + mobile menu (sama logika seperti contoh sebelumnya) -->
+  <script>
+    // Theme toggle
+    const THEME_KEY = '<%= config.name %>_theme';
+    const themeToggle = document.getElementById('theme-toggle');
+    const mobileThemeToggle = document.getElementById('mobile-theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const mobileThemeIcon = document.getElementById('mobile-theme-icon');
+
+    function applyThemeClass(theme){ if (theme === 'dark') document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark'); }
+    function getInitialTheme(){ const saved = localStorage.getItem(THEME_KEY); if (saved === 'dark' || saved === 'light') return saved; const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; return prefersDark ? 'dark' : 'light'; }
+    function setTheme(theme, persist = true){
+      applyThemeClass(theme);
+      const isDark = theme === 'dark';
+      if (themeToggle) { themeToggle.setAttribute('aria-checked', isDark ? 'true' : 'false'); themeIcon && (themeIcon.innerHTML = isDark ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>'); themeIcon && themeIcon.classList.add('rotate'); setTimeout(()=> themeIcon && themeIcon.classList.remove('rotate'), 300); }
+      if (mobileThemeIcon) mobileThemeIcon.className = isDark ? 'fa-solid fa-moon text-slate-200' : 'fa-solid fa-sun text-yellow-400';
+      if (persist) localStorage.setItem(THEME_KEY, theme);
+    }
+    function toggleTheme(){ const cur = document.documentElement.classList.contains('dark') ? 'dark' : 'light'; setTheme(cur === 'dark' ? 'light' : 'dark', true); }
+    (function initTheme(){ const initial = getInitialTheme(); setTheme(initial, false); })();
+    if (themeToggle) themeToggle.addEventListener('click', toggleTheme);
+    if (themeToggle) themeToggle.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Spacebar' || e.key === 'Enter') { e.preventDefault(); toggleTheme(); } });
+    if (mobileThemeToggle) mobileThemeToggle.addEventListener('click', toggleTheme);
+
+    // Mobile menu
+    const menuToggle = document.getElementById('menu-toggle');
+    const mobileMenu = document.getElementById('mobile-menu');
+    if (menuToggle && mobileMenu) {
+      menuToggle.addEventListener('click', ()=> {
+        mobileMenu.classList.toggle('hidden');
+        const icon = menuToggle.querySelector('i');
+        if (mobileMenu.classList.contains('hidden')) {
+          icon.className = 'fas fa-bars text-xl text-gray-700 dark:text-slate-200';
+        } else {
+          icon.className = 'fas fa-times text-xl text-gray-700 dark:text-slate-200';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

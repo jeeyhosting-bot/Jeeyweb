@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="id" class="antialiased">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title><%= config.name %> — Support</title>
+
+  <!-- Tailwind (class-based dark mode) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' };</script>
+
+  <!-- Fonts & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="icon" type="image/png" href="/img/favicon.png" />
+<link rel="apple-touch-icon" href="/img/favicon.png" />
+  <style>
+    /* --- CSS Variables --- */
+    :root { 
+      --card-bg: #ffffff; 
+      --card-shadow: rgba(2,6,23,0.06); 
+      --accent: #6366f1; 
+      --accent-2: #4f46e5; 
+      --surface: #f8fafc;
+      --text-primary: #0f172a;
+    }
+    
+    html,body { 
+      font-family:"Montserrat",system-ui,-apple-system,"Segoe UI",Roboto,Arial; 
+      scroll-behavior: smooth;
+    }
+    
+    body { 
+      background: var(--surface); 
+      -webkit-font-smoothing:antialiased; 
+      line-height: 1.6;
+    }
+    
+    .dark body { 
+      background: #071127; 
+      --surface: #071127;
+      --text-primary: #f1f5f9;
+    }
+
+    /* Modern Card Design */
+    .card {
+      background: var(--card-bg);
+      border-radius: 1.25rem;
+      padding: 1.75rem 1.5rem;
+      box-shadow: 0 10px 30px var(--card-shadow);
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(15,23,42,0.03);
+      transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+      box-shadow: 0 15px 40px rgba(2,6,23,0.1);
+      transform: translateY(-2px);
+    }
+    
+    .dark .card { 
+      background: #0b1a3a; 
+      --card-shadow: rgba(2,6,23,0.25); 
+      border-color: rgba(255,255,255,0.03); 
+    }
+
+    /* Typography Improvements */
+    h1, h2, h3, h4, h5, h6 {
+      color: var(--text-primary);
+      font-weight: 700;
+      line-height: 1.3;
+    }
+    
+    .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+      color: #f1f5f9;
+    }
+
+    /* Utility Classes */
+    .mono-box {
+      font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,"Roboto Mono",monospace;
+      background: #f3f4f6;
+      padding: .35rem .6rem;
+      border-radius: .5rem;
+      display: inline-block;
+    }
+    
+    .dark .mono-box { 
+      background: #041127; 
+    }
+
+    .status-pill {
+      padding: .35rem .6rem;
+      border-radius: 999px;
+      font-weight: 600;
+      display: inline-flex;
+      gap: .5rem;
+      align-items: center;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      color: white;
+      padding: 0.875rem 1.5rem;
+      border-radius: 0.875rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      min-width: 140px;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+    }
+    
+    .btn-primary[disabled] {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+    
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid rgba(15,23,42,0.08);
+      padding: 0.75rem 1.25rem;
+      border-radius: 0.875rem;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      min-width: 120px;
+    }
+    
+    .btn-ghost:hover {
+      background: rgba(15,23,42,0.03);
+      border-color: rgba(15,23,42,0.1);
+    }
+    
+    .dark .btn-ghost {
+      border-color: rgba(255,255,255,0.08);
+    }
+    
+    .dark .btn-ghost:hover {
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.12);
+    }
+
+    /* Result Area */
+    .result-area {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: .75rem;
+      background: #f9fafb;
+      transition: all .22s ease; 
+      border: 1px solid rgba(2,6,23,0.03);
+    }
+    
+    .dark .result-area { 
+      background: #041225; 
+      border-color: rgba(255,255,255,0.03); 
+    }
+
+    /* Layout Helpers */
+    .page-container { 
+      max-width: 1200px; 
+      margin-left: auto; 
+      margin-right: auto; 
+      padding-left: 1.5rem; 
+      padding-right: 1.5rem; 
+    }
+    
+    @media (min-width: 1024px) { 
+      .page-container { 
+        max-width: 1280px; 
+      } 
+    }
+    
+    .sticky-sidebar { 
+      position: sticky; 
+      top: 96px; 
+    }
+
+    /* Responsive Tweaks */
+    @media (max-width: 768px) { 
+      .desktop-only { display: none; } 
+    }
+    
+    @media (min-width: 769px) { 
+      .mobile-only { display: none; } 
+    }
+
+    /* Form Labels */
+    label.form-label { 
+      display: block; 
+      font-weight: 600; 
+      margin-bottom: .5rem; 
+      color: var(--text-primary); 
+    }
+    
+    .dark label.form-label { 
+      color: #e6eefb; 
+    }
+
+    /* Icon Badge */
+    .icon-badge { 
+      display: inline-flex; 
+      align-items: center; 
+      justify-content: center; 
+      width: 48px; 
+      height: 48px; 
+      border-radius: .6rem; 
+      background: linear-gradient(180deg, rgba(99,102,241,0.12), rgba(99,102,241,0.06)); 
+      color: var(--accent); 
+      font-weight: 700; 
+    }
+
+    /* Contact Card */
+    .contact-card { 
+      border-radius: 1rem; 
+      padding: 1.5rem; 
+      display: flex; 
+      flex-direction: column;
+      gap: 1rem; 
+      border: 1px solid rgba(15,23,42,0.04); 
+      background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.85)); 
+      height: 100%;
+      transition: all 0.3s ease;
+    }
+    
+    .contact-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 40px rgba(2,6,23,0.1);
+    }
+    
+    .dark .contact-card { 
+      background: linear-gradient(180deg, #0b1a3a, #071225); 
+      border-color: rgba(255,255,255,0.04); 
+    }
+
+    .contact-actions { 
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    /* Accordion */
+    .accordion-item + .accordion-item { 
+      margin-top: .5rem; 
+    }
+    
+    .acc-header { 
+      cursor: pointer; 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      padding: 1rem 1rem; 
+      border-radius: .75rem; 
+      transition: all 0.3s ease;
+    }
+    
+    .acc-header:hover {
+      background: rgba(15,23,42,0.03);
+    }
+    
+    .dark .acc-header:hover {
+      background: rgba(255,255,255,0.03);
+    }
+    
+    .acc-body { 
+      padding: 0 1rem 1rem; 
+    }
+
+    /* Text Styles */
+    .small-muted { 
+      font-size: .85rem; 
+      color: #6b7280; 
+    }
+    
+    .dark .small-muted { 
+      color: #9fb0d6; 
+    }
+    
+    /* Improved Header */
+    .nav-link {
+      position: relative;
+      transition: color 0.3s ease;
+    }
+    
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: -5px;
+      left: 0;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 0.3s ease;
+    }
+    
+    .nav-link:hover::after,
+    .nav-link.active::after {
+      width: 100%;
+    }
+    
+    /* Mobile Menu Animation */
+    #mobile-menu {
+      transition: all 0.3s ease;
+      max-height: 0;
+      overflow: hidden;
+    }
+    
+    #mobile-menu.open {
+      max-height: 300px;
+    }
+    
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      padding: 1rem 1.5rem;
+      border-radius: 0.75rem;
+      background: #0f172a;
+      color: white;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      z-index: 100;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+    
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    
+    .dark .toast {
+      background: #1e293b;
+    }
+
+    /* Contact Grid Fixes */
+    .contact-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    @media (min-width: 1024px) {
+      .contact-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    /* Button Group Fixes */
+    .btn-group {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-group .btn-primary,
+    .btn-group .btn-ghost {
+      flex: 1;
+      min-width: 120px;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-slate-100">
+
+  <!-- ========== HEADER ========== -->
+  <header class="bg-white dark:bg-slate-800 sticky top-0 z-40 shadow-sm transition-colors duration-300">
+    <div class="container mx-auto px-4 md:px-6 py-3 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-pink-500 flex items-center justify-center shadow-lg">
+    <img src="/img/favlogo.jpg" alt="Logo" class="rounded-lg w-full h-full object-contain" />
+  </div>
+        <div>
+          <div class="text-lg font-bold text-gray-900 dark:text-slate-100"><%= config.name %> <span class="hidden text-blue-600 font-semibold">.</span></div>
+          <div class="text-xs text-gray-500 dark:text-slate-300 -mt-1">Top Up — Cepat & Aman</div>
+        </div>
+      </a>
+
+      <div class="flex items-center gap-3">
+        <button id="mobile-theme-toggle" class="md:hidden p-2 rounded-full focus:outline-none hover:bg-gray-100 dark:hover:bg-slate-700" aria-label="Ubah tema" data-mobile-theme-toggle>
+          <i id="mobile-theme-icon" class="fa-solid fa-moon text-gray-700 dark:text-slate-200"></i>
+        </button>
+
+        <nav class="hidden md:flex items-center gap-6">
+          <a href="/" class="text-sm font-medium text-gray-700 dark:text-slate-300 nav-link focus-outline">Beranda</a>
+          <a href="/status" class="text-sm font-medium text-gray-700 dark:text-slate-300 nav-link focus-outline">Status Pesanan</a>
+          <a href="/faq" class="text-sm font-medium text-gray-700 dark:text-slate-300 nav-link focus-outline">Faq</a>
+          <a href="/panduan" class="text-sm font-medium text-gray-700 dark:text-slate-300 nav-link focus-outline">Panduan</a>
+          <a href="/syarat-dan-ketentuan" class="text-sm font-medium text-gray-700 dark:text-slate-300 nav-link focus-outline">Syarat & Ketentuan</a>
+        </nav>
+
+        <button id="theme-toggle" aria-label="Ubah mode: gelap / terang" role="switch" aria-checked="false"
+          class="hidden md:inline-flex ml-1 p-1 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 shadow-sm items-center gap-2">
+          <span class="sr-only">Toggle theme</span>
+          <span id="theme-icon" class="flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-tr from-yellow-400 to-orange-400 text-white shadow icon-rotate">
+            <i class="fa-solid fa-sun"></i>
+          </span>
+        </button>
+
+        <button id="menu-toggle" class="p-2 rounded-md md:hidden focus:outline-none" aria-label="Buka menu">
+          <i class="fas fa-bars text-xl text-gray-700 dark:text-slate-200"></i>
+        </button>
+      </div>
+    </div>
+
+    <div id="mobile-menu" class="md:hidden hidden border-t border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800">
+      <div class="px-4 py-4 space-y-2">
+        <a href="/" class="block py-2 px-2 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700">Beranda</a>
+        <a href="/status" class="block py-2 px-2 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700">Status Pesanan</a>
+        <a href="/faq" class="block py-2 px-2 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700">Faq</a>
+        <a href="/panduan" class="text-sm font-medium text-gray-700 dark:text-slate-300 nav-link focus-outline">Panduan</a>
+        <a href="/syarat-dan-ketentuan" class="block py-2 px-2 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700">Syarat & Ketentuan</a>
+      </div>
+    </div>
+  </header>
+  <!-- ========== /HEADER ========== -->
+
+  <!-- ========== MAIN: Support page - FIXED LAYOUT ========== -->
+  <main class="page-container py-8 md:py-12">
+    <!-- Hero Section - Fixed -->
+    <div class="mb-8 md:mb-12 grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      <div class="lg:col-span-2">
+        <h1 class="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">Butuh Bantuan? <span class="bg-gradient-to-r from-indigo-600 to-pink-500 bg-clip-text text-transparent">Kami Siap Membantu</span></h1>
+        <p class="text-base md:text-lg text-gray-600 dark:text-slate-300 max-w-2xl">Tim support kami tersedia 24/7 untuk membantu masalah deposit, transaksi, dan layanan lainnya. Pilih kanal komunikasi yang paling nyaman untuk Anda.</p>
+      </div>
+
+      <div class="flex gap-4 items-center justify-start lg:justify-end">
+        <div class="text-center md:text-right">
+          <div class="text-sm small-muted">Waktu Respons</div>
+          <div class="font-bold text-lg md:text-xl text-indigo-600 dark:text-indigo-400">≤ 2 Jam</div>
+        </div>
+        <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-indigo-100 to-pink-100 dark:from-indigo-900 dark:to-pink-900 flex items-center justify-center text-indigo-600 dark:text-indigo-300">
+          <i class="fa-solid fa-headset text-lg md:text-xl"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-4 gap-6 md:gap-8">
+      <!-- Left: contact channels + FAQ -->
+      <div class="xl:col-span-3 space-y-6 md:space-y-8">
+        <!-- Contact channels - FIXED GRID -->
+        <section class="card">
+          <div class="flex flex-col md:flex-row md:items-start justify-between mb-4">
+            <div class="mb-4 md:mb-0 md:mr-4">
+              <h2 class="text-xl md:text-2xl font-bold mb-2">Hubungi Tim Support</h2>
+              <p class="text-gray-600 dark:text-slate-400">Pilih salah satu kanal di bawah untuk menghubungi tim support kami secara langsung.</p>
+            </div>
+            <div class="text-sm small-muted bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 py-1 px-3 rounded-full self-start">Respons Cepat 24/7</div>
+          </div>
+
+          <div class="contact-grid mt-6">
+            <!-- Email Card -->
+            <div class="contact-card">
+              <div class="flex items-start gap-4 mb-4">
+                <div class="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-gradient-to-br from-indigo-100 to-indigo-200 flex items-center justify-center text-indigo-600 shadow-sm flex-shrink-0">
+                  <i class="fa-solid fa-envelope text-xl md:text-2xl"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-bold text-lg mb-1">Email</div>
+                  <div class="text-sm small-muted mb-2">Untuk laporan & dokumentasi resmi</div>
+                  <div class="text-base font-medium truncate"><a id="support-email" href="mailto:<%= config.contact.email %>" class="text-indigo-600 dark:text-indigo-400 hover:underline"><%= config.contact.email %></a></div>
+                </div>
+              </div>
+
+              <div class="mt-auto btn-group">
+                <a href="mailto:<%= config.contact.email %>?subject=Support%20Request" class="btn-ghost inline-flex items-center justify-center flex-1">
+                  <i class="fa-regular fa-paper-plane mr-2"></i>Kirim Email
+                </a>
+                <button id="copy-email" class="btn-ghost inline-flex items-center justify-center flex-1">
+                  <i class="fa-regular fa-copy mr-2"></i>Salin
+                </button>
+              </div>
+            </div>
+
+            <!-- WhatsApp Card -->
+            <div class="contact-card">
+              <div class="flex items-start gap-4 mb-4">
+                <div class="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-green-100 flex items-center justify-center text-green-600 shadow-sm flex-shrink-0">
+                  <i class="fa-brands fa-whatsapp text-xl md:text-2xl"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-bold text-lg mb-1">WhatsApp</div>
+                  <div class="text-sm small-muted mb-2">Obrolan cepat (chat langsung)</div>
+                  <div class="text-base font-medium truncate"><a id="support-wa" href="https://wa.me/<%= config.contact.whatsapp %>?text=Hai%20Support%20<%= config.name %>%2C%20saya%20butuh%20bantuan..." target="_blank" rel="noopener" class="text-green-600 dark:text-green-400 hover:underline"><%= config.contact.whatsapp %></a></div>
+                </div>
+              </div>
+
+              <div class="mt-auto btn-group">
+                <a id="btn-wa-start" href="https://wa.me/<%= config.contact.whatsapp %>?text=Hai%20Support%20<%= config.name %>%2C%20saya%20butuh%20bantuan..." target="_blank" rel="noopener" class="btn-primary inline-flex items-center justify-center flex-1">
+                  <i class="fa-brands fa-whatsapp mr-2"></i>Chat via WA
+                </a>
+                <button id="copy-wa" class="btn-ghost inline-flex items-center justify-center flex-1">
+                  <i class="fa-regular fa-copy mr-2"></i>Salin
+                </button>
+              </div>
+            </div>
+
+            <!-- Telegram Card -->
+            <div class="contact-card">
+              <div class="flex items-start gap-4 mb-4">
+                <div class="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-sky-100 flex items-center justify-center text-sky-600 shadow-sm flex-shrink-0">
+                  <i class="fa-brands fa-telegram text-xl md:text-2xl"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-bold text-lg mb-1">Telegram</div>
+                  <div class="text-sm small-muted mb-2">Support & notifikasi</div>
+                  <div class="text-base font-medium truncate"><a id="support-tg" href="https://t.me/<%= config.contact.telegram %>" target="_blank" rel="noopener" class="text-sky-600 dark:text-sky-400 hover:underline">@<%= config.contact.telegram %></a></div>
+                </div>
+              </div>
+
+              <div class="mt-auto btn-group">
+                <a id="btn-tg" href="https://t.me/<%= config.contact.telegram %>" target="_blank" rel="noopener" class="btn-ghost inline-flex items-center justify-center flex-1">
+                  <i class="fa-brands fa-telegram mr-2"></i>Buka Telegram
+                </a>
+                <button id="copy-tg" class="btn-ghost inline-flex items-center justify-center flex-1">
+                  <i class="fa-regular fa-copy mr-2"></i>Salin
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- quick note -->
+          <div class="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
+            <div class="flex items-start gap-3">
+              <div class="text-blue-500 mt-0.5"><i class="fa-solid fa-lightbulb"></i></div>
+              <div class="text-sm text-blue-700 dark:text-blue-300">
+                <span class="font-semibold">Tips:</span> Untuk respons tercepat, sertakan <strong>ID transaksi / deposit</strong> dan screenshot bila diperlukan.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- FAQ accordion -->
+        <section class="card">
+          <h3 class="text-xl font-bold mb-6">Pertanyaan Umum (FAQ)</h3>
+          <div class="accordion space-y-4">
+
+            <div class="accordion-item border border-gray-100 dark:border-slate-700 rounded-xl overflow-hidden">
+              <div class="acc-header bg-gray-50 dark:bg-slate-800" data-acc>
+                <div>
+                  <div class="font-semibold">Bagaimana bila deposit belum masuk?</div>
+                  <div class="small-muted mt-1">Langkah cepat yang bisa dilakukan</div>
+                </div>
+                <div class="text-sm small-muted acc-toggle"><i class="fa-solid fa-chevron-down transition-transform"></i></div>
+              </div>
+              <div class="acc-body text-gray-600 dark:text-slate-300 hidden">
+                <p class="mb-3">Periksa ID deposit dan status melalui halaman ini. Jika masih pending lebih dari 30 menit, hubungi support dengan menyertakan:</p>
+                <ul class="list-disc pl-5 space-y-1">
+                  <li>ID deposit</li>
+                  <li>Metode pembayaran</li>
+                  <li>Waktu transaksi</li>
+                  <li>Screenshot bukti pembayaran</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="accordion-item border border-gray-100 dark:border-slate-700 rounded-xl overflow-hidden">
+              <div class="acc-header bg-gray-50 dark:bg-slate-800" data-acc>
+                <div>
+                  <div class="font-semibold">Apa yang harus disertakan saat menghubungi support?</div>
+                  <div class="small-muted mt-1">Mempercepat proses verifikasi</div>
+                </div>
+                <div class="text-sm small-muted acc-toggle"><i class="fa-solid fa-chevron-down transition-transform"></i></div>
+              </div>
+              <div class="acc-body text-gray-600 dark:text-slate-300 hidden">
+                <p class="mb-3">Pastikan untuk mencantumkan informasi berikut:</p>
+                <ul class="list-disc pl-5 space-y-1">
+                  <li>ID transaksi/deposit</li>
+                  <li>Metode pembayaran</li>
+                  <li>Jumlah transaksi</li>
+                  <li>Waktu transaksi</li>
+                  <li>Screenshot jika ada</li>
+                </ul>
+                <p class="mt-3">Semakin lengkap informasi yang diberikan, semakin cepat tim kami dapat merespons.</p>
+              </div>
+            </div>
+
+            <div class="accordion-item border border-gray-100 dark:border-slate-700 rounded-xl overflow-hidden">
+              <div class="acc-header bg-gray-50 dark:bg-slate-800" data-acc>
+                <div>
+                  <div class="font-semibold">Berapa lama waktu respons?</div>
+                  <div class="small-muted mt-1">Estimasi waktu tanggapan</div>
+                </div>
+                <div class="text-sm small-muted acc-toggle"><i class="fa-solid fa-chevron-down transition-transform"></i></div>
+              </div>
+              <div class="acc-body text-gray-600 dark:text-slate-300 hidden">
+                <p>Support tersedia 24/7. Rata-rata respons awal:</p>
+                <ul class="list-disc pl-5 mt-2 space-y-1">
+                  <li><strong>WhatsApp/Telegram:</strong> Beberapa menit - 1 jam</li>
+                  <li><strong>Email:</strong> 1 - 4 jam</li>
+                </ul>
+                <p class="mt-3">Untuk masalah verifikasi pembayaran, biasanya diselesaikan dalam waktu <strong>≤ 2 jam</strong>.</p>
+              </div>
+            </div>
+
+          </div>
+        </section>
+      </div>
+
+      <!-- Right sidebar: quick summary & contact shortcuts -->
+      <aside class="xl:col-span-1">
+        <div class="sticky-sidebar space-y-6">
+          <div class="card">
+            <h4 class="text-lg font-bold mb-4">Ringkasan Kontak</h4>
+            <div class="space-y-4">
+              <div class="flex items-start gap-3 p-3 rounded-lg bg-gray-50 dark:bg-slate-800">
+                <div class="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 flex-shrink-0">
+                  <i class="fa-solid fa-envelope text-sm"></i>
+                </div>
+                <div class="min-w-0">
+                  <div class="font-semibold text-sm">Email</div>
+                  <div class="small-muted truncate"><%= config.contact.email %></div>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3 p-3 rounded-lg bg-gray-50 dark:bg-slate-800">
+                <div class="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 flex-shrink-0">
+                  <i class="fa-brands fa-whatsapp text-sm"></i>
+                </div>
+                <div class="min-w-0">
+                  <div class="font-semibold text-sm">WhatsApp</div>
+                  <div class="small-muted truncate"><%= config.contact.whatsapp %></div>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3 p-3 rounded-lg bg-gray-50 dark:bg-slate-800">
+                <div class="w-8 h-8 rounded-lg bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center text-sky-600 dark:text-sky-400 flex-shrink-0">
+                  <i class="fa-brands fa-telegram text-sm"></i>
+                </div>
+                <div class="min-w-0">
+                  <div class="font-semibold text-sm">Telegram</div>
+                  <div class="small-muted truncate">@<%= config.contact.telegram %></div>
+                </div>
+              </div>
+
+              <div class="mt-4 space-y-3">
+                <a class="btn-primary w-full inline-flex items-center justify-center" href="mailto:<%= config.contact.email %>">
+                  <i class="fa-regular fa-envelope mr-2"></i>Kirim Email
+                </a>
+                <a class="btn-ghost w-full inline-flex items-center justify-center" href="https://wa.me/<%= config.contact.whatsapp %>?text=Hai%20Support%20<%= config.name %>">
+                  <i class="fa-brands fa-whatsapp mr-2"></i>Chat WhatsApp
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="card bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
+            <h4 class="text-lg font-bold mb-3">Butuh Bantuan Cepat?</h4>
+            <p class="text-indigo-100 text-sm mb-4">Gunakan WhatsApp untuk respons tercepat. Siapkan ID transaksi jika relevan.</p>
+            <div class="mt-3">
+              <a class="bg-white text-indigo-600 hover:bg-indigo-50 w-full inline-flex items-center justify-center font-semibold py-3 px-4 rounded-xl transition-colors" href="https://wa.me/<%= config.contact.whatsapp %>?text=Hai%20Support%20<%= config.name %>">
+                <i class="fa-brands fa-whatsapp mr-2"></i>Chat Sekarang
+              </a>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+  <!-- ========== /MAIN ========== -->
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="glass shadow-sm bg-white/70 text-gray-800 dark:bg-slate-900 dark:text-slate-200 py-10">
+    <div class="container mx-auto px-4 md:px-6">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+
+        <!-- Logo & Deskripsi -->
+        <div class="md:col-span-5 lg:col-span-6">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-pink-500 flex items-center justify-center shadow-lg">
+   		   <img src="/img/favlogo.jpg" alt="Logo" class="rounded-lg w-full h-full object-contain" />
+  		  </div>
+            <div>
+              <p class="font-semibold text-lg text-gray-900 dark:text-white"><%= config.name %></p>
+              <p class="text-xs text-gray-500 dark:text-slate-400 -mt-1">Solusi Top-Up Terpercaya</p>
+            </div>
+          </div>
+
+          <div class="mt-3 text-sm text-gray-600 dark:text-slate-300 leading-relaxed whitespace-normal break-words max-w-[65ch]" style="hyphens:auto;">
+            <p>
+              <%= config.name %> adalah platform top-up terpercaya untuk 
+              <span class="font-medium text-gray-800 dark:text-slate-100">game online, pulsa & data, voucher digital, serta akun premium</span>.
+              Kami menghadirkan layanan cepat, aman, dan praktis dengan dukungan pelanggan 24/7.
+            </p>
+            
+            <div class="<%= config.legality_information ? '' : 'hidden' %>">
+
+  <p class="mt-2">
+    Proyek ini dikembangkan oleh
+    <span class="font-medium text-gray-800 dark:text-slate-100">PT Inovixa Technologies Solution</span> sebagai wujud inovasi digital
+    untuk memudahkan transaksi online masyarakat Indonesia.
+    Kunjungi kami di
+    <a href="https://inovixa.web.id" target="_blank" rel="noopener" class="underline text-blue-600 dark:text-blue-400 hover:opacity-90">inovixa.web.id</a>.
+  </p>
+
+  <ul class="mt-3 space-y-1 text-xs text-gray-500 dark:text-slate-400">
+    <li>
+      <i class="fa-solid fa-file-contract mr-1 text-gray-400"></i>
+      <strong>Nomor Administrasi Hukum Umum (AHU):</strong>
+      AHU-038360.AH.01.30.Tahun 2025
+    </li>
+    <li>
+      <i class="fa-solid fa-file-signature mr-1 text-gray-400"></i>
+      <strong>Nomor Induk Berusaha (NIB):</strong>
+      2809250003254
+    </li>
+    <li>
+      <i class="fa-solid fa-id-card mr-1 text-gray-400"></i>
+      <strong>Nomor Pokok Wajib Pajak (NPWP):</strong>
+      10.000.000.0-516.7828
+    </li>
+  </ul>
+
+</div>
+            <p class="hidden mt-2 text-xs">
+              <a href="https://inovixa.web.id/legality" target="_blank" rel="noopener" 
+                 class="underline text-blue-600 dark:text-blue-400 hover:opacity-90">
+                Lihat detail legalitas perusahaan →
+              </a>
+            </p>
+          </div>
+        </div>
+
+        <!-- Link Cepat -->
+        <div class="md:col-span-2">
+          <h4 class="font-semibold mb-3 text-gray-900 dark:text-white">Link Cepat</h4>
+          <ul class="text-sm space-y-2 text-gray-600 dark:text-slate-300">
+            <li><a href="/status" class="hover:text-blue-600 dark:hover:text-blue-400">Status Pesanan</a></li>
+            <li><a href="/syarat-dan-ketentuan" class="hover:text-blue-600 dark:hover:text-blue-400">Syarat dan Ketentuan</a></li>
+            <li><a href="/faq" class="hover:text-blue-600 dark:hover:text-blue-400">FAQ</a></li>
+          </ul>
+        </div>
+
+        <!-- Bantuan -->
+        <div class="md:col-span-2">
+          <h4 class="font-semibold mb-3 text-gray-900 dark:text-white">Bantuan</h4>
+          <ul class="text-sm space-y-2 text-gray-600 dark:text-slate-300">
+            <li><a href="/support" class="hover:text-blue-600 dark:hover:text-blue-400">Hubungi Kami</a></li>
+            <li><a href="/panduan" class="hover:text-blue-600 dark:hover:text-blue-400">Panduan</a></li>
+            <li><a href="/refund-dan-kebijakan" class="hover:text-blue-600 dark:hover:text-blue-400">Refund & Kebijakan</a></li>
+          </ul>
+        </div>
+
+        <!-- Ikuti Kami + Pembayaran -->
+        <div class="md:col-span-3 lg:col-span-2">
+          <h4 class="font-semibold mb-3 text-gray-900 dark:text-white">Ikuti Kami</h4>
+          <div class="flex flex-wrap items-center gap-3 text-gray-600 dark:text-slate-300">
+            <%- config.socmed %>
+          </div>
+
+          <!-- Pembayaran -->
+          <div class="mt-6">
+            <h5 class="text-sm font-semibold mb-2 text-gray-900 dark:text-white">Metode Pembayaran</h5>
+            <div class="flex gap-2 items-center">
+              <img src="/img/payment.png" alt="Payment" class="mx-auto rounded max-w-full h-auto" />
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Copyright -->
+      <div class="border-t border-gray-200 dark:border-slate-700 mt-8 pt-4 text-center text-xs text-gray-500 dark:text-slate-400">
+        &copy; <%= config.footer %>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========== SCRIPT: theme toggle ========== -->
+  <script>
+    // Theme toggle logic
+    const THEME_KEY = '<%= config.name %>_theme';
+    const themeToggle = document.getElementById('theme-toggle');
+    const mobileThemeToggle = document.getElementById('mobile-theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const mobileThemeIcon = document.getElementById('mobile-theme-icon');
+    const themeDot = document.getElementById('theme-dot');
+    
+    function applyThemeClass(theme){ 
+      if (theme === 'dark') document.documentElement.classList.add('dark'); 
+      else document.documentElement.classList.remove('dark'); 
+    }
+    
+    function getInitialTheme(){ 
+      const saved = localStorage.getItem(THEME_KEY); 
+      if (saved === 'dark' || saved === 'light') return saved; 
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; 
+      return prefersDark ? 'dark' : 'light'; 
+    }
+    
+    function setTheme(theme, persist = true){
+      applyThemeClass(theme);
+      const isDark = theme === 'dark';
+      
+      if (themeToggle) {
+        themeToggle.setAttribute('aria-checked', isDark ? 'true' : 'false');
+        themeIcon && (themeIcon.innerHTML = isDark ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>');
+        themeIcon && themeIcon.classList.add('rotate'); 
+        setTimeout(()=> themeIcon && themeIcon.classList.remove('rotate'), 300);
+        if (themeDot) themeDot.style.transform = isDark ? 'translateX(22px)' : 'translateX(0)';
+      }
+      
+      if (mobileThemeIcon) mobileThemeIcon.className = isDark ? 'fa-solid fa-moon text-slate-200' : 'fa-solid fa-sun text-yellow-400';
+      if (persist) localStorage.setItem(THEME_KEY, theme);
+    }
+    
+    function toggleTheme(){ 
+      const cur = document.documentElement.classList.contains('dark') ? 'dark' : 'light'; 
+      setTheme(cur === 'dark' ? 'light' : 'dark', true); 
+    }
+    
+    (function initTheme(){ 
+      const initial = getInitialTheme(); 
+      setTheme(initial, false); 
+    })();
+    
+    if (themeToggle) themeToggle.addEventListener('click', toggleTheme);
+    if (themeToggle) themeToggle.addEventListener('keydown', (e) => { 
+      if (e.key === ' ' || e.key === 'Spacebar' || e.key === 'Enter') { 
+        e.preventDefault(); 
+        toggleTheme(); 
+      } 
+    });
+    
+    if (mobileThemeToggle) mobileThemeToggle.addEventListener('click', toggleTheme);
+
+    // Mobile menu toggle
+    const menuToggle = document.getElementById('menu-toggle');
+    const mobileMenu = document.getElementById('mobile-menu');
+    
+    if (menuToggle && mobileMenu) {
+      menuToggle.addEventListener('click', ()=> {
+        mobileMenu.classList.toggle('open');
+        mobileMenu.classList.toggle('hidden');
+        
+        // Change icon based on menu state
+        const icon = menuToggle.querySelector('i');
+        if (mobileMenu.classList.contains('open')) {
+          icon.className = 'fas fa-times text-xl text-gray-700 dark:text-slate-200';
+        } else {
+          icon.className = 'fas fa-bars text-xl text-gray-700 dark:text-slate-200';
+        }
+      });
+    }
+
+    // set copyright year
+    const ye = document.getElementById('currentYear'); 
+    if (ye) ye.textContent = new Date().getFullYear();
+  </script>
+
+  <!-- ========== SCRIPT: support page logic (copy, accordion) ========== -->
+  <script>
+    // Copy buttons with improved toast
+    function copyToClipboard(text, btn) {
+      if (!navigator.clipboard) {
+        // fallback
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        document.body.appendChild(ta);
+        ta.focus(); 
+        ta.select();
+        try { 
+          document.execCommand('copy'); 
+        } catch(e){}
+        document.body.removeChild(ta);
+        showToast('Teks berhasil disalin');
+        return;
+      }
+      
+      navigator.clipboard.writeText(text).then(()=> {
+        showToast('Teks berhasil disalin');
+      }, ()=> {
+        showToast('Gagal menyalin teks');
+      });
+    }
+
+    function showToast(msg) {
+      // Create toast element
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = `
+        <div class="flex items-center gap-3">
+          <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white">
+            <i class="fa-solid fa-check text-xs"></i>
+          </div>
+          <span>${msg}</span>
+        </div>
+      `;
+      
+      document.body.appendChild(toast);
+      
+      // Show toast
+      setTimeout(() => {
+        toast.classList.add('show');
+      }, 10);
+      
+      // Hide and remove toast
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+          document.body.removeChild(toast);
+        }, 300);
+      }, 3000);
+    }
+
+    // Attach copy event listeners
+    document.getElementById('copy-email')?.addEventListener('click', (e)=>{
+      copyToClipboard('<%= config.contact.email %>', e.target);
+    });
+    
+    document.getElementById('copy-wa')?.addEventListener('click', (e)=>{
+      copyToClipboard('<%= config.contact.whatsapp %>', e.target);
+    });
+    
+    document.getElementById('copy-tg')?.addEventListener('click', (e)=>{
+      copyToClipboard('<%= config.contact.telegram %>', e.target);
+    });
+
+    // Accordion behavior
+    document.querySelectorAll('[data-acc]').forEach(header => {
+      header.addEventListener('click', () => {
+        const item = header.closest('.accordion-item');
+        if (!item) return;
+        
+        const body = item.querySelector('.acc-body');
+        const toggle = item.querySelector('.acc-toggle i');
+        
+        if (!body) return;
+        
+        const isOpen = !body.classList.contains('hidden');
+        
+        // Close all other accordion items
+        document.querySelectorAll('.accordion-item').forEach(otherItem => {
+          if (otherItem !== item) {
+            const otherBody = otherItem.querySelector('.acc-body');
+            const otherToggle = otherItem.querySelector('.acc-toggle i');
+            
+            if (otherBody) otherBody.classList.add('hidden');
+            if (otherToggle) otherToggle.classList.remove('fa-rotate-180');
+          }
+        });
+        
+        // Toggle current item
+        if (isOpen) {
+          body.classList.add('hidden');
+          toggle.classList.remove('fa-rotate-180');
+        } else {
+          body.classList.remove('hidden');
+          toggle.classList.add('fa-rotate-180');
+        }
+      });
+    });
+
+    // Accessibility: allow keyboard toggle for accordion headers
+    document.querySelectorAll('.acc-header').forEach(h => {
+      h.setAttribute('tabindex', '0');
+      h.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault();
+          h.click();
+        }
+      });
+    });
+
+    // Initialize page with first accordion open
+    document.addEventListener('DOMContentLoaded', () => {
+      const firstAccordion = document.querySelector('.accordion-item');
+      if (firstAccordion) {
+        const firstBody = firstAccordion.querySelector('.acc-body');
+        const firstToggle = firstAccordion.querySelector('.acc-toggle i');
+        
+        if (firstBody && firstToggle) {
+          firstBody.classList.remove('hidden');
+          firstToggle.classList.add('fa-rotate-180');
+        }
+      }
+    });
+  </script>
+
+</body>
+</html>
